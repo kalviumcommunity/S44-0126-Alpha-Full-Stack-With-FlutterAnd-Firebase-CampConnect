@@ -20,7 +20,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('CampusConnect')),
+      appBar: AppBar(title: const Text('CampConnect')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
