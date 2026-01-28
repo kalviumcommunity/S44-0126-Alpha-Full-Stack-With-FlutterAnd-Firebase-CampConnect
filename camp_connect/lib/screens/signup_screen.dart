@@ -1,13 +1,28 @@
+import 'package:camp_connect/services/firestore_service.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 
-class SignupScreen extends StatelessWidget {
-  SignupScreen({super.key});
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
 
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends State<SignupScreen> {
+  final nameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    nameCtrl.dispose();
+    emailCtrl.dispose();
+    passCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +32,10 @@ class SignupScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(labelText: "Name"),
+            ),
             TextField(
               controller: emailCtrl,
               decoration: const InputDecoration(labelText: "Email"),
@@ -36,10 +55,17 @@ class SignupScreen extends StatelessWidget {
                 );
 
                 if (user != null && context.mounted) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const HomeScreen()),
-                  );
+                  await FirestoreService().addUserData(user.uid, {
+                    'name': nameCtrl.text,
+                    'email': emailCtrl.text.trim(),
+                  });
+
+                  if (context.mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    );
+                  }
                 }
               },
               child: const Text("Sign Up"),
