@@ -1,7 +1,11 @@
-import 'package:camp_connect/screens/responsive_home.dart';
+import 'package:camp_connect/screens/login_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -14,7 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'CampConnect',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.indigo),
-      home: const ResponsiveHome(),
+      home: LoginScreen(),
     );
   }
 }
