@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/date_utils.dart';
 
 class EventDetailScreen extends StatelessWidget {
   final Map<String, String> event;
@@ -7,6 +8,8 @@ class EventDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isPast = parseDate(event['date']!).isBefore(todayDate());
+
     return Scaffold(
       appBar: AppBar(title: const Text('Event Details')),
       body: Padding(
@@ -18,27 +21,27 @@ class EventDetailScreen extends StatelessWidget {
               event['title']!,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
-            Text('📅 Date: ${event['date']}'),
+            const SizedBox(height: 12),
+            Text('📅 ${formatDate(event['date']!)}'),
             const SizedBox(height: 8),
-            Text('📍 Location: ${event['location']}'),
+            Text('📍 ${event['location']}'),
             const SizedBox(height: 16),
             const Divider(),
-            const SizedBox(height: 16),
-            Text(
-              event['description'] ?? 'No description available.',
-              style: const TextStyle(fontSize: 16),
-            ),
+            Text(event['description'] ?? 'No description available'),
             const Spacer(),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Registration coming soon')),
-                  );
-                },
-                child: const Text('Register'),
+                onPressed: isPast
+                    ? null
+                    : () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Registration feature coming soon'),
+                          ),
+                        );
+                      },
+                child: Text(isPast ? 'Event Ended' : 'Register'),
               ),
             ),
           ],

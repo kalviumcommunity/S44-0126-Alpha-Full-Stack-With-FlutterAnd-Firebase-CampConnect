@@ -1,78 +1,72 @@
 import 'package:flutter/material.dart';
+import '../data/dummy_events.dart';
+import '../utils/date_utils.dart';
 import 'event_detail_screen.dart';
-
-final List<Map<String, String>> dummyEvents = [
-  {
-    'title': 'Tech Talk: Flutter Basics',
-    'date': '12 Oct 2026',
-    'location': 'Auditorium A',
-    'description': 'An introductory session on Flutter fundamentals.',
-  },
-  {
-    'title': 'AI Club Orientation',
-    'date': '15 Oct 2026',
-    'location': 'Room 204',
-    'description': 'Orientation for new members of the AI Club.',
-  },
-  {
-    'title': 'Hackathon Meetup',
-    'date': '20 Oct 2026',
-    'location': 'Innovation Lab',
-    'description': 'Meet fellow hackers and form teams.',
-  },
-];
 
 class EventListScreen extends StatelessWidget {
   const EventListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final today = todayDate();
+
+    // 🟢 Upcoming + today events
+    final upcomingEvents =
+        dummyEvents
+            .where((e) => !parseDate(e['date']!).isBefore(today))
+            .toList()
+          ..sort(
+            (a, b) => parseDate(a['date']!).compareTo(parseDate(b['date']!)),
+          );
+
+    // 🔴 Past events
+    final pastEvents =
+        dummyEvents.where((e) => parseDate(e['date']!).isBefore(today)).toList()
+          ..sort(
+            (a, b) => parseDate(a['date']!).compareTo(parseDate(b['date']!)),
+          );
+
+    // 🔥 Final list: upcoming first, past last
+    final orderedEvents = [...upcomingEvents, ...pastEvents];
+
     return Scaffold(
       appBar: AppBar(title: const Text('All Events'), centerTitle: true),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: dummyEvents.length,
+        itemCount: orderedEvents.length,
         itemBuilder: (context, index) {
-          final event = dummyEvents[index];
+          final event = orderedEvents[index];
+          final isPast = parseDate(event['date']!).isBefore(today);
 
           return Card(
-            elevation: 3,
+            color: isPast ? Colors.grey.shade200 : null,
             margin: const EdgeInsets.only(bottom: 16),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => EventDetailScreen(event: event),
-                  ),
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            event['title']!,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text('📅 ${event['date']}'),
-                          const SizedBox(height: 4),
-                          Text('📍 ${event['location']}'),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right, color: Colors.grey),
-                  ],
+            child: ListTile(
+              title: Text(
+                event['title']!,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isPast ? Colors.grey : Colors.black,
                 ),
               ),
+              subtitle: Text(
+                '📅 ${formatDate(event['date']!)}\n📍 ${event['location']}',
+                style: TextStyle(color: isPast ? Colors.grey : Colors.black),
+              ),
+              trailing: Icon(
+                Icons.chevron_right,
+                color: isPast ? Colors.grey : Colors.black,
+              ),
+              onTap: isPast
+                  ? null
+                  : () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => EventDetailScreen(event: event),
+                        ),
+                      );
+                    },
             ),
           );
         },
