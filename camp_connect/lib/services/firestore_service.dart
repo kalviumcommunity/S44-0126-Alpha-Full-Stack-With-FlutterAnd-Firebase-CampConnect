@@ -6,7 +6,10 @@ class FirestoreService {
   );
 
   Future<void> addUserData(String uid, Map<String, dynamic> data) async {
-    await users.doc(uid).set(data);
+    await users.doc(uid).set({
+      ...data,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Stream<QuerySnapshot> getUsers() {
