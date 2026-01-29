@@ -1,24 +1,9 @@
 import 'package:flutter/material.dart';
+import '../data/dummy_events.dart';
+import '../utils/date_utils.dart';
+import 'event_detail_screen.dart';
 import 'event_list_screen.dart';
 import 'profile_screen.dart';
-
-final List<Map<String, String>> dummyEvents = [
-  {
-    'title': 'Tech Talk: Flutter Basics',
-    'date': '12 Oct 2026',
-    'location': 'Auditorium A',
-  },
-  {
-    'title': 'AI Club Orientation',
-    'date': '15 Oct 2026',
-    'location': 'Room 204',
-  },
-  {
-    'title': 'Hackathon Meetup',
-    'date': '20 Oct 2026',
-    'location': 'Innovation Lab',
-  },
-];
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,25 +13,17 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
+  int currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeTab(),
-    EventListScreen(),
-    ProfileScreen(),
-  ];
+  final screens = const [HomeTab(), EventListScreen(), ProfileScreen()];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: screens[currentIndex],
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        currentIndex: currentIndex,
+        onTap: (index) => setState(() => currentIndex = index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Events'),
@@ -62,35 +39,44 @@ class HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final today = todayDate();
+    final endDate = today.add(const Duration(days: 2));
+
+    final upcomingEvents =
+        dummyEvents.where((e) {
+          final date = parseDate(e['date']!);
+          return !date.isBefore(today) && !date.isAfter(endDate);
+        }).toList()..sort(
+          (a, b) => parseDate(a['date']!).compareTo(parseDate(b['date']!)),
+        );
+
     return Scaffold(
       appBar: AppBar(title: const Text('Upcoming Events'), centerTitle: true),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: dummyEvents.length,
+        itemCount: upcomingEvents.length,
         itemBuilder: (context, index) {
-          final event = dummyEvents[index];
+          final event = upcomingEvents[index];
 
           return Card(
-            elevation: 3,
             margin: const EdgeInsets.only(bottom: 16),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    event['title']!,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('📅 ${event['date']}'),
-                  const SizedBox(height: 4),
-                  Text('📍 ${event['location']}'),
-                ],
+            child: ListTile(
+              title: Text(
+                event['title']!,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
+              subtitle: Text(
+                '📅 ${formatDate(event['date']!)}\n📍 ${event['location']}',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => EventDetailScreen(event: event),
+                  ),
+                );
+              },
             ),
           );
         },
