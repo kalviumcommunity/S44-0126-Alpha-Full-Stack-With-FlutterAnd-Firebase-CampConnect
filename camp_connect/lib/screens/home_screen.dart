@@ -2,6 +2,24 @@ import 'package:flutter/material.dart';
 import 'event_list_screen.dart';
 import 'profile_screen.dart';
 
+final List<Map<String, String>> dummyEvents = [
+  {
+    'title': 'Tech Talk: Flutter Basics',
+    'date': '12 Oct 2026',
+    'location': 'Auditorium A',
+  },
+  {
+    'title': 'AI Club Orientation',
+    'date': '15 Oct 2026',
+    'location': 'Room 204',
+  },
+  {
+    'title': 'Hackathon Meetup',
+    'date': '20 Oct 2026',
+    'location': 'Innovation Lab',
+  },
+];
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -45,12 +63,37 @@ class HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('CampConnect'), centerTitle: true),
-      body: const Center(
-        child: Text(
-          'Welcome to CampConnect\n(Home Feed)',
-          textAlign: TextAlign.center,
-        ),
+      appBar: AppBar(title: const Text('Upcoming Events'), centerTitle: true),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: dummyEvents.length,
+        itemBuilder: (context, index) {
+          final event = dummyEvents[index];
+
+          return Card(
+            elevation: 3,
+            margin: const EdgeInsets.only(bottom: 16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event['title']!,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('📅 ${event['date']}'),
+                  const SizedBox(height: 4),
+                  Text('📍 ${event['location']}'),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
