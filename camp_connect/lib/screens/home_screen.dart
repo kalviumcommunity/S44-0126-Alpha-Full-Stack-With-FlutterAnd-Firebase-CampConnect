@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../data/dummy_events.dart';
 import '../utils/date_utils.dart';
+import '../widgets/event_card.dart';
+import '../widgets/app_bottom_nav.dart';
 import 'event_detail_screen.dart';
 import 'event_list_screen.dart';
 import 'profile_screen.dart';
@@ -21,14 +23,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: screens[currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: AppBottomNav(
         currentIndex: currentIndex,
-        onTap: (index) => setState(() => currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Events'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
+        onTap: (index) {
+          setState(() => currentIndex = index);
+        },
       ),
     );
   }
@@ -58,26 +57,16 @@ class HomeTab extends StatelessWidget {
         itemBuilder: (context, index) {
           final event = upcomingEvents[index];
 
-          return Card(
-            margin: const EdgeInsets.only(bottom: 16),
-            child: ListTile(
-              title: Text(
-                event['title']!,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                '📅 ${formatDate(event['date']!)}\n📍 ${event['location']}',
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => EventDetailScreen(event: event),
-                  ),
-                );
-              },
-            ),
+          return EventCard(
+            event: event,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EventDetailScreen(event: event),
+                ),
+              );
+            },
           );
         },
       ),
