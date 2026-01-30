@@ -10,6 +10,8 @@ class EventListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = todayDate();
+    final width = MediaQuery.of(context).size.width;
+    final isWide = width >= 930;
 
     final upcomingEvents =
         dummyEvents
@@ -29,24 +31,53 @@ class EventListScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('All Events'), centerTitle: true),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: orderedEvents.length,
-        itemBuilder: (context, index) {
-          final event = orderedEvents[index];
-
-          return EventCard(
-            event: event,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EventDetailScreen(event: event),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: isWide
+              ? GridView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: orderedEvents.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 2.8,
+                  ),
+                  itemBuilder: (context, index) {
+                    final event = orderedEvents[index];
+                    return EventCard(
+                      event: event,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EventDetailScreen(event: event),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: orderedEvents.length,
+                  itemBuilder: (context, index) {
+                    final event = orderedEvents[index];
+                    return EventCard(
+                      event: event,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EventDetailScreen(event: event),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
-              );
-            },
-          );
-        },
+        ),
       ),
     );
   }

@@ -40,6 +40,8 @@ class HomeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final today = todayDate();
     final endDate = today.add(const Duration(days: 2));
+    final width = MediaQuery.of(context).size.width;
+    final isWide = width >= 930;
 
     final upcomingEvents =
         dummyEvents.where((e) {
@@ -49,27 +51,77 @@ class HomeTab extends StatelessWidget {
           (a, b) => parseDate(a['date']!).compareTo(parseDate(b['date']!)),
         );
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Upcoming Events'), centerTitle: true),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: upcomingEvents.length,
-        itemBuilder: (context, index) {
-          final event = upcomingEvents[index];
+    return CustomScrollView(
+      slivers: [
+        // ✅ AppBar WITHOUT nested Scaffold
+        const SliverAppBar(
+          pinned: true,
+          centerTitle: true,
+          title: Text('Upcoming Events'),
+        ),
 
-          return EventCard(
-            event: event,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EventDetailScreen(event: event),
-                ),
-              );
-            },
-          );
-        },
-      ),
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverToBoxAdapter(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1000),
+                child: isWide
+                    ? GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: upcomingEvents.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 16,
+                              crossAxisSpacing: 16,
+                              childAspectRatio: 2.8,
+                            ),
+                        itemBuilder: (context, index) {
+                          final event = upcomingEvents[index];
+                          return EventCard(
+                            event: event,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      EventDetailScreen(event: event),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: upcomingEvents.length,
+                        itemBuilder: (context, index) {
+                          final event = upcomingEvents[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: EventCard(
+                              event: event,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        EventDetailScreen(event: event),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

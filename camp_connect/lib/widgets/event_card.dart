@@ -38,23 +38,23 @@ class EventCard extends StatelessWidget {
 
     return Card(
       elevation: isPast ? 0 : 2,
-      margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: isPast ? Colors.grey.shade100 : Colors.white,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: onTap, // ✅ even past events open details
+        onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // 🔑 important
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 🔹 Title
-                    Text(
+              // 🔹 Title row + chevron
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
                       event['title']!,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -64,84 +64,81 @@ class EventCard extends StatelessWidget {
                         color: isPast ? Colors.black54 : Colors.black,
                       ),
                     ),
-
-                    const SizedBox(height: 10),
-
-                    // 📅 Date
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 16,
-                          color: isPast ? Colors.grey : Colors.deepPurple,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          formatDate(event['date']!),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isPast ? Colors.grey : Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    // 📍 Location
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on,
-                          size: 16,
-                          color: isPast ? Colors.grey : Colors.red,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            event['location']!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isPast ? Colors.grey : Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // 🔹 Status badge (always visible)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: badgeColor,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        statusText,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: badgeTextColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.chevron_right,
+                    color: isPast ? Colors.grey : Colors.black54,
+                  ),
+                ],
               ),
 
-              const SizedBox(width: 8),
+              const SizedBox(height: 10),
 
-              // ➡ Chevron (muted for past)
-              Icon(
-                Icons.chevron_right,
-                color: isPast ? Colors.grey : Colors.black54,
+              // 📅 Date
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: isPast ? Colors.grey : Colors.deepPurple,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    formatDate(event['date']!),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isPast ? Colors.grey : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 6),
+
+              // 📍 Location
+              Row(
+                children: [
+                  Icon(
+                    Icons.location_on,
+                    size: 16,
+                    color: isPast ? Colors.grey : Colors.red,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      event['location']!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isPast ? Colors.grey : Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // 🔹 Status badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  statusText,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: badgeTextColor,
+                  ),
+                ),
               ),
             ],
           ),
