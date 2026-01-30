@@ -2,25 +2,24 @@ import 'package:flutter/material.dart';
 import '../utils/date_utils.dart';
 
 class EventDetailScreen extends StatelessWidget {
-  final Map<String, String> event;
+  final Map<String, dynamic> event;
 
   const EventDetailScreen({super.key, required this.event});
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final eventDate = parseDate(event['date']!);
-    final today = todayDate();
 
-    final isPast = eventDate.isBefore(today);
-    final isToday =
-        eventDate.year == today.year &&
-        eventDate.month == today.month &&
-        eventDate.day == today.day;
+    // ✅ Firestore-safe DateTime handling
+    final DateTime eventDate = normalizeDate(event['date']);
+    final DateTime today = todayDate();
 
-    String statusText;
-    Color badgeColor;
-    Color textColor;
+    final bool isPast = eventDate.isBefore(today);
+    final bool isToday = eventDate.isAtSameMomentAs(today);
+
+    late String statusText;
+    late Color badgeColor;
+    late Color textColor;
 
     if (isPast) {
       statusText = 'Event Ended';
@@ -57,7 +56,7 @@ class EventDetailScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        event['title']!,
+                        event['title'],
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -67,6 +66,7 @@ class EventDetailScreen extends StatelessWidget {
 
                       const SizedBox(height: 16),
 
+                      // 📅 Date
                       Row(
                         children: [
                           Icon(
@@ -76,7 +76,7 @@ class EventDetailScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            formatDate(event['date']!),
+                            formatDate(event['date']),
                             style: TextStyle(
                               fontSize: 15,
                               color: isPast ? Colors.grey : Colors.black87,
@@ -87,6 +87,7 @@ class EventDetailScreen extends StatelessWidget {
 
                       const SizedBox(height: 10),
 
+                      // 📍 Location
                       Row(
                         children: [
                           Icon(
@@ -97,7 +98,7 @@ class EventDetailScreen extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              event['location']!,
+                              event['location'],
                               style: TextStyle(
                                 fontSize: 15,
                                 color: isPast ? Colors.grey : Colors.black87,
@@ -109,6 +110,7 @@ class EventDetailScreen extends StatelessWidget {
 
                       const SizedBox(height: 16),
 
+                      // 🔹 Status badge
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -132,6 +134,7 @@ class EventDetailScreen extends StatelessWidget {
                       Divider(color: isPast ? Colors.grey.shade300 : null),
                       const SizedBox(height: 12),
 
+                      // 📝 Description
                       Text(
                         event['description'] ?? 'No description available.',
                         style: TextStyle(
@@ -147,7 +150,7 @@ class EventDetailScreen extends StatelessWidget {
                 ),
               ),
 
-              // 🔹 Bottom CTA (only if NOT past)
+              // 🔹 Bottom CTA (only if upcoming/today)
               if (!isPast)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),

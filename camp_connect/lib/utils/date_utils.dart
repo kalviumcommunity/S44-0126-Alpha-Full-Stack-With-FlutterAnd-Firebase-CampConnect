@@ -5,11 +5,10 @@ DateTime todayDate() {
   return DateTime(now.year, now.month, now.day);
 }
 
-DateTime parseDate(String date) {
-  final parsed = DateTime.parse(date);
-  return DateTime(parsed.year, parsed.month, parsed.day);
+DateTime normalizeDate(DateTime date) {
+  return DateTime(date.year, date.month, date.day);
 }
 
-String formatDate(String date) {
-  return DateFormat('dd MMM yyyy').format(DateTime.parse(date));
+String formatDate(DateTime date) {
+  return DateFormat('dd MMM yyyy').format(date);
 }

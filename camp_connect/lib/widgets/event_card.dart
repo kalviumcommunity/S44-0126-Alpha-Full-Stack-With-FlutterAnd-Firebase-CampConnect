@@ -2,25 +2,22 @@ import 'package:flutter/material.dart';
 import '../utils/date_utils.dart';
 
 class EventCard extends StatelessWidget {
-  final Map<String, String> event;
+  final Map<String, dynamic> event;
   final VoidCallback? onTap;
 
-  const EventCard({super.key, required this.event, required this.onTap});
+  const EventCard({super.key, required this.event, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final eventDate = parseDate(event['date']!);
+    final eventDate = normalizeDate(event['date']);
     final today = todayDate();
 
     final isPast = eventDate.isBefore(today);
-    final isToday =
-        eventDate.year == today.year &&
-        eventDate.month == today.month &&
-        eventDate.day == today.day;
+    final isToday = eventDate.isAtSameMomentAs(today);
 
-    String statusText;
-    Color badgeColor;
-    Color badgeTextColor;
+    late String statusText;
+    late Color badgeColor;
+    late Color badgeTextColor;
 
     if (isPast) {
       statusText = 'Event Ended';
@@ -39,89 +36,52 @@ class EventCard extends StatelessWidget {
     return Card(
       elevation: isPast ? 0 : 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: isPast ? Colors.grey.shade100 : Colors.white,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
           child: Column(
-            mainAxisSize: MainAxisSize.min, // 🔑 important
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔹 Title row + chevron
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Text(
-                      event['title']!,
+                      event['title'],
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: isPast ? Colors.black54 : Colors.black,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    Icons.chevron_right,
-                    color: isPast ? Colors.grey : Colors.black54,
-                  ),
+                  const Icon(Icons.chevron_right),
                 ],
               ),
-
               const SizedBox(height: 10),
-
-              // 📅 Date
               Row(
                 children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 16,
-                    color: isPast ? Colors.grey : Colors.deepPurple,
-                  ),
+                  const Icon(Icons.calendar_today, size: 16),
                   const SizedBox(width: 8),
-                  Text(
-                    formatDate(event['date']!),
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isPast ? Colors.grey : Colors.black87,
-                    ),
-                  ),
+                  Text(formatDate(event['date'])),
                 ],
               ),
-
               const SizedBox(height: 6),
-
-              // 📍 Location
               Row(
                 children: [
-                  Icon(
-                    Icons.location_on,
-                    size: 16,
-                    color: isPast ? Colors.grey : Colors.red,
-                  ),
+                  const Icon(Icons.location_on, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      event['location']!,
-                      maxLines: 1,
+                      event['location'],
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isPast ? Colors.grey : Colors.black87,
-                      ),
                     ),
                   ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
-              // 🔹 Status badge
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
