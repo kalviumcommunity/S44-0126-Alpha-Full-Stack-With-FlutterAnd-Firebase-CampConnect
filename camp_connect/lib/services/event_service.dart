@@ -2,10 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class EventService {
-  static final EventService _instance = EventService._internal();
-  factory EventService() => _instance;
-  EventService._internal();
-
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -22,13 +18,12 @@ class EventService {
           'location': data['location'],
           'date': (data['date'] as Timestamp).toDate(),
           'createdBy': data['createdBy'],
-          'createdAt': (data['createdAt'] as Timestamp).toDate(),
+          'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
         };
       }).toList();
     });
   }
 
-  // 🔐 ADMIN-ONLY EVENT CREATION
   Future<void> createEvent({
     required String title,
     required String description,
@@ -36,7 +31,18 @@ class EventService {
     required DateTime date,
   }) async {
     final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final userDoc = await _firestore.collection('users').doc(uid).get();
+    if (userDoc.data()?['role'] != 'admin') {
+      throw Exception('Unauthorized');
+    }
+
+    if (title.isEmpty || description.isEmpty || location.isEmpty) {
+      throw Exception('Missing required fields');
+    }
 
     await _firestore.collection('events').add({
       'title': title,
