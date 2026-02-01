@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/event_service.dart';
+import '../services/registration_service.dart';
 import '../utils/date_utils.dart';
 import '../widgets/event_card.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -41,91 +42,104 @@ class HomeTab extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 930;
 
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: EventService().streamEvents(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return StreamBuilder<List<String>>(
+      stream: RegistrationService().streamUserRegistrations(),
+      builder: (context, regSnapshot) {
+        final registeredIds = regSnapshot.data ?? [];
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No upcoming events'));
-        }
+        return StreamBuilder<List<Map<String, dynamic>>>(
+          stream: EventService().streamEvents(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        final upcomingEvents = snapshot.data!.where((e) {
-          final date = normalizeDate(e['date']);
-          return !date.isBefore(today) && !date.isAfter(endDate);
-        }).toList()..sort((a, b) => a['date'].compareTo(b['date']));
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('No upcoming events'));
+            }
 
-        return CustomScrollView(
-          slivers: [
-            const SliverAppBar(
-              pinned: true,
-              centerTitle: true,
-              title: Text('Upcoming Events'),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverToBoxAdapter(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1000), // 🔑 KEY
-                    child: isWide
-                        ? GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: upcomingEvents.length,
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  mainAxisSpacing: 16,
-                                  crossAxisSpacing: 16,
-                                  childAspectRatio: 2.8,
-                                ),
-                            itemBuilder: (context, index) {
-                              final event = upcomingEvents[index];
-                              return EventCard(
-                                event: event,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          EventDetailScreen(event: event),
+            final upcomingEvents = snapshot.data!.where((e) {
+              final date = normalizeDate(e['date']);
+              return !date.isBefore(today) && !date.isAfter(endDate);
+            }).toList()..sort((a, b) => a['date'].compareTo(b['date']));
+
+            return CustomScrollView(
+              slivers: [
+                const SliverAppBar(
+                  pinned: true,
+                  centerTitle: true,
+                  title: Text('Upcoming Events'),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.all(16),
+                  sliver: SliverToBoxAdapter(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1000),
+                        child: isWide
+                            ? GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: upcomingEvents.length,
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      mainAxisSpacing: 16,
+                                      crossAxisSpacing: 16,
+                                      childAspectRatio: 2.8,
+                                    ),
+                                itemBuilder: (context, index) {
+                                  final event = upcomingEvents[index];
+                                  return EventCard(
+                                    event: event,
+                                    isRegistered: registeredIds.contains(
+                                      event['id'],
+                                    ),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              EventDetailScreen(event: event),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              )
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: upcomingEvents.length,
+                                itemBuilder: (context, index) {
+                                  final event = upcomingEvents[index];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 16),
+                                    child: EventCard(
+                                      event: event,
+                                      isRegistered: registeredIds.contains(
+                                        event['id'],
+                                      ),
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                EventDetailScreen(event: event),
+                                          ),
+                                        );
+                                      },
                                     ),
                                   );
                                 },
-                              );
-                            },
-                          )
-                        : ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: upcomingEvents.length,
-                            itemBuilder: (context, index) {
-                              final event = upcomingEvents[index];
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: EventCard(
-                                  event: event,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            EventDetailScreen(event: event),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
+                              ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
