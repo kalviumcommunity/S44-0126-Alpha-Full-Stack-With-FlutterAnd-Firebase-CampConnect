@@ -32,12 +32,22 @@ class ProfileScreen extends StatelessWidget {
                 final isAdmin = snapshot.data?['role'] == 'admin';
                 if (!isAdmin) return const SizedBox();
 
-                return const Padding(
-                  padding: EdgeInsets.only(right: 12),
+                return Padding(
+                  padding: const EdgeInsets.only(right: 12),
                   child: Chip(
-                    label: Text('ADMIN'),
+                    label: const Text(
+                      'ADMIN',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     backgroundColor: Colors.deepPurple,
-                    labelStyle: TextStyle(color: Colors.white),
+                    labelStyle: const TextStyle(color: Colors.white),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                 );
               },
