@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/date_utils.dart';
+import '../services/registration_service.dart';
 
 class EventDetailScreen extends StatelessWidget {
   final Map<String, dynamic> event;
@@ -10,12 +11,12 @@ class EventDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    // ✅ Firestore-safe DateTime handling
     final DateTime eventDate = normalizeDate(event['date']);
     final DateTime today = todayDate();
 
     final bool isPast = eventDate.isBefore(today);
     final bool isToday = eventDate.isAtSameMomentAs(today);
+    final String eventId = event['id'];
 
     late String statusText;
     late Color badgeColor;
@@ -48,7 +49,6 @@ class EventDetailScreen extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 720),
           child: Column(
             children: [
-              // 🔹 Scrollable content
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
@@ -63,10 +63,8 @@ class EventDetailScreen extends StatelessWidget {
                           color: isPast ? Colors.black54 : Colors.black,
                         ),
                       ),
-
                       const SizedBox(height: 16),
 
-                      // 📅 Date
                       Row(
                         children: [
                           Icon(
@@ -75,19 +73,12 @@ class EventDetailScreen extends StatelessWidget {
                             color: isPast ? Colors.grey : Colors.deepPurple,
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            formatDate(event['date']),
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: isPast ? Colors.grey : Colors.black87,
-                            ),
-                          ),
+                          Text(formatDate(event['date'])),
                         ],
                       ),
 
                       const SizedBox(height: 10),
 
-                      // 📍 Location
                       Row(
                         children: [
                           Icon(
@@ -96,21 +87,12 @@ class EventDetailScreen extends StatelessWidget {
                             color: isPast ? Colors.grey : Colors.red,
                           ),
                           const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              event['location'],
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: isPast ? Colors.grey : Colors.black87,
-                              ),
-                            ),
-                          ),
+                          Expanded(child: Text(event['location'])),
                         ],
                       ),
 
                       const SizedBox(height: 16),
 
-                      // 🔹 Status badge
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -131,10 +113,9 @@ class EventDetailScreen extends StatelessWidget {
                       ),
 
                       const SizedBox(height: 20),
-                      Divider(color: isPast ? Colors.grey.shade300 : null),
+                      const Divider(),
                       const SizedBox(height: 12),
 
-                      // 📝 Description
                       Text(
                         event['description'] ?? 'No description available.',
                         style: TextStyle(
@@ -143,97 +124,59 @@ class EventDetailScreen extends StatelessWidget {
                           color: isPast ? Colors.black54 : Colors.black87,
                         ),
                       ),
-
-                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
               ),
 
-              // 🔹 Bottom CTA (only if upcoming/today)
+              // 🔹 REAL REGISTER BUTTON
               if (!isPast)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                   child: SizedBox(
                     width: size.width > 720 ? 400 : double.infinity,
                     height: 52,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(20),
+                    child: FutureBuilder<bool>(
+                      future: RegistrationService().isRegistered(eventId),
+                      builder: (context, snapshot) {
+                        final registered = snapshot.data ?? false;
+
+                        return OutlinedButton(
+                          onPressed: registered
+                              ? null
+                              : () async {
+                                  await RegistrationService().registerForEvent(
+                                    eventId,
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Registered successfully'),
+                                    ),
+                                  );
+                                },
+                          style: OutlinedButton.styleFrom(
+                            backgroundColor: registered
+                                ? Colors.grey.shade200
+                                : badgeColor,
+                            foregroundColor: registered
+                                ? Colors.grey
+                                : textColor,
+                            side: BorderSide(
+                              color: textColor.withValues(alpha: 0.4),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
                             ),
                           ),
-                          builder: (sheetContext) {
-                            return Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                24,
-                                12,
-                                24,
-                                24,
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Center(
-                                    child: Container(
-                                      width: 40,
-                                      height: 4,
-                                      margin: const EdgeInsets.only(bottom: 16),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade400,
-                                        borderRadius: BorderRadius.circular(2),
-                                      ),
-                                    ),
-                                  ),
-                                  const Text(
-                                    'Registrations Coming Soon',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    'You’ll be able to register for events in the next version of CampConnect.',
-                                    style: TextStyle(fontSize: 15),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(sheetContext),
-                                      child: const Text('Got it'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                          child: Text(
+                            registered ? 'Registered' : 'Register',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         );
                       },
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: badgeColor,
-                        foregroundColor: textColor,
-                        side: BorderSide(
-                          color: textColor.withValues(alpha: 0.5),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child: const Text(
-                        'Register',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
                     ),
                   ),
                 ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../services/firestore_service.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 
@@ -120,17 +119,14 @@ class _SignupScreenState extends State<SignupScreen> {
                           final user = await AuthService().signUp(
                             emailCtrl.text.trim(),
                             passCtrl.text.trim(),
-                          );
-
-                          if (user != null && context.mounted) {
-                            await FirestoreService().addUserData(user.uid, {
+                            {
                               'name': nameCtrl.text.trim(),
                               'email': emailCtrl.text.trim(),
                               'role': 'student',
-                            });
+                            },
+                          );
 
-                            if (!context.mounted) return;
-
+                          if (user != null && context.mounted) {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(

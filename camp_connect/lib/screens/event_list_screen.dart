@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/registration_service.dart';
 import '../services/event_service.dart';
 import '../utils/date_utils.dart';
 import '../widgets/event_card.dart';
@@ -14,87 +15,97 @@ class EventListScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('All Events'), centerTitle: true),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: EventService().streamEvents(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: StreamBuilder<List<String>>(
+        stream: RegistrationService().streamUserRegistrations(),
+        builder: (context, regSnapshot) {
+          final registeredIds = regSnapshot.data ?? [];
 
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No events found'));
-          }
+          return StreamBuilder<List<Map<String, dynamic>>>(
+            stream: EventService().streamEvents(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          final today = todayDate();
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No events found'));
+              }
 
-          // 🔹 Split events
-          final upcomingEvents = snapshot.data!.where((e) {
-            final date = normalizeDate(e['date']);
-            return !date.isBefore(today);
-          }).toList()..sort((a, b) => a['date'].compareTo(b['date']));
+              final today = todayDate();
 
-          final pastEvents =
-              snapshot.data!.where((e) {
-                final date = normalizeDate(e['date']);
-                return date.isBefore(today);
-              }).toList()..sort(
-                (a, b) => b['date'].compareTo(a['date']),
-              ); // recent first
+              final upcomingEvents =
+                  snapshot.data!
+                      .where((e) => !normalizeDate(e['date']).isBefore(today))
+                      .toList()
+                    ..sort((a, b) => a['date'].compareTo(b['date']));
 
-          final orderedEvents = [...upcomingEvents, ...pastEvents];
+              final pastEvents =
+                  snapshot.data!
+                      .where((e) => normalizeDate(e['date']).isBefore(today))
+                      .toList()
+                    ..sort((a, b) => b['date'].compareTo(a['date']));
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1000),
-              child: isWide
-                  ? GridView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: orderedEvents.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 2.8,
-                          ),
-                      itemBuilder: (context, index) {
-                        final event = orderedEvents[index];
-                        return EventCard(
-                          event: event,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => EventDetailScreen(event: event),
+              final orderedEvents = [...upcomingEvents, ...pastEvents];
+
+              return Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: isWide
+                      ? GridView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: orderedEvents.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 16,
+                                crossAxisSpacing: 16,
+                                childAspectRatio: 2.8,
+                              ),
+                          itemBuilder: (context, index) {
+                            final event = orderedEvents[index];
+                            return EventCard(
+                              event: event,
+                              isRegistered: registeredIds.contains(event['id']),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        EventDetailScreen(event: event),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: orderedEvents.length,
+                          itemBuilder: (context, index) {
+                            final event = orderedEvents[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: EventCard(
+                                event: event,
+                                isRegistered: registeredIds.contains(
+                                  event['id'],
+                                ),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          EventDetailScreen(event: event),
+                                    ),
+                                  );
+                                },
                               ),
                             );
                           },
-                        );
-                      },
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: orderedEvents.length,
-                      itemBuilder: (context, index) {
-                        final event = orderedEvents[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: EventCard(
-                            event: event,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      EventDetailScreen(event: event),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-            ),
+                        ),
+                ),
+              );
+            },
           );
         },
       ),
