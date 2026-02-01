@@ -4,8 +4,14 @@ import '../utils/date_utils.dart';
 class EventCard extends StatelessWidget {
   final Map<String, dynamic> event;
   final VoidCallback? onTap;
+  final bool isRegistered; // ✅ NEW
 
-  const EventCard({super.key, required this.event, this.onTap});
+  const EventCard({
+    super.key,
+    required this.event,
+    this.onTap,
+    this.isRegistered = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,23 +50,42 @@ class EventCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 🔹 Title + Registered dot + Chevron
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      event['title'],
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            event['title'],
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        if (isRegistered)
+                          Container(
+                            margin: const EdgeInsets.only(left: 6),
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: Colors.green,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const Icon(Icons.chevron_right),
                 ],
               ),
+
               const SizedBox(height: 10),
+
               Row(
                 children: [
                   const Icon(Icons.calendar_today, size: 16),
@@ -68,7 +93,9 @@ class EventCard extends StatelessWidget {
                   Text(formatDate(event['date'])),
                 ],
               ),
+
               const SizedBox(height: 6),
+
               Row(
                 children: [
                   const Icon(Icons.location_on, size: 16),
@@ -81,7 +108,9 @@ class EventCard extends StatelessWidget {
                   ),
                 ],
               ),
+
               const SizedBox(height: 12),
+
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
