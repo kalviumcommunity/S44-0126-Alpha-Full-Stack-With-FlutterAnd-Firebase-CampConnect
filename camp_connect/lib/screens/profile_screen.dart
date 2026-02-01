@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/event_service.dart';
 import '../services/registration_service.dart';
+import '../utils/date_utils.dart';
 import '../widgets/event_card.dart';
 import 'event_detail_screen.dart';
 import 'login_screen.dart';
@@ -16,10 +17,33 @@ class ProfileScreen extends StatelessWidget {
 
     return CustomScrollView(
       slivers: [
-        const SliverAppBar(
+        SliverAppBar(
           pinned: true,
           centerTitle: true,
-          title: Text('Profile'),
+          title: const Text('Profile'),
+
+          // 🔹 ADMIN BADGE (VISUAL ONLY)
+          actions: [
+            StreamBuilder<Map<String, dynamic>?>(
+              stream: AuthService().streamUserProfile(),
+              builder: (context, snapshot) {
+                final isAdmin = snapshot.data?['role'] == 'admin';
+                if (!isAdmin) return const SizedBox();
+
+                return const Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: Chip(
+                    label: Text('ADMIN'),
+                    backgroundColor: Colors.deepPurple,
+                    labelStyle: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
 
         SliverPadding(
@@ -27,7 +51,6 @@ class ProfileScreen extends StatelessWidget {
           sliver: SliverToBoxAdapter(
             child: Center(
               child: ConstrainedBox(
-                // ✅ SAME AS HOME TAB
                 constraints: const BoxConstraints(maxWidth: 1000),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,7 +72,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
 
-                          StreamBuilder<Map<String, dynamic>>(
+                          StreamBuilder<Map<String, dynamic>?>(
                             stream: AuthService().streamUserProfile(),
                             builder: (context, snapshot) {
                               if (!snapshot.hasData) {
@@ -59,7 +82,7 @@ class ProfileScreen extends StatelessWidget {
                               final data = snapshot.data!;
                               final email =
                                   AuthService().currentUser?.email ?? '';
-                              final role = (data['role'] ?? 'Student')
+                              final role = (data['role'] ?? 'student')
                                   .toString();
 
                               return Column(
@@ -127,26 +150,56 @@ class ProfileScreen extends StatelessWidget {
                               );
                             }
 
-                            final events = eventSnapshot.data!
+                            final today = todayDate();
+
+                            final registeredEvents = eventSnapshot.data!
                                 .where((e) => registeredIds.contains(e['id']))
                                 .toList();
 
-                            // ✅ SAME GRID LOGIC AS HOME TAB
+                            final upcomingEvents =
+                                registeredEvents
+                                    .where(
+                                      (e) => !normalizeDate(
+                                        e['date'],
+                                      ).isBefore(today),
+                                    )
+                                    .toList()
+                                  ..sort(
+                                    (a, b) => a['date'].compareTo(b['date']),
+                                  );
+
+                            final pastEvents =
+                                registeredEvents
+                                    .where(
+                                      (e) => normalizeDate(
+                                        e['date'],
+                                      ).isBefore(today),
+                                    )
+                                    .toList()
+                                  ..sort(
+                                    (a, b) => b['date'].compareTo(a['date']),
+                                  );
+
+                            final orderedEvents = [
+                              ...upcomingEvents,
+                              ...pastEvents,
+                            ];
+
                             return isWide
                                 ? GridView.builder(
                                     shrinkWrap: true,
                                     physics:
                                         const NeverScrollableScrollPhysics(),
-                                    itemCount: events.length,
+                                    itemCount: orderedEvents.length,
                                     gridDelegate:
                                         const SliverGridDelegateWithFixedCrossAxisCount(
                                           crossAxisCount: 2,
                                           mainAxisSpacing: 16,
                                           crossAxisSpacing: 16,
-                                          childAspectRatio: 2.8, // ✅ SAME
+                                          childAspectRatio: 2.8,
                                         ),
                                     itemBuilder: (context, index) {
-                                      final event = events[index];
+                                      final event = orderedEvents[index];
                                       return EventCard(
                                         event: event,
                                         isRegistered: true,
@@ -167,9 +220,9 @@ class ProfileScreen extends StatelessWidget {
                                     shrinkWrap: true,
                                     physics:
                                         const NeverScrollableScrollPhysics(),
-                                    itemCount: events.length,
+                                    itemCount: orderedEvents.length,
                                     itemBuilder: (context, index) {
-                                      final event = events[index];
+                                      final event = orderedEvents[index];
                                       return Padding(
                                         padding: const EdgeInsets.only(
                                           bottom: 16,
@@ -230,7 +283,6 @@ class ProfileScreen extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              letterSpacing: 0.3,
                             ),
                           ),
                         ),

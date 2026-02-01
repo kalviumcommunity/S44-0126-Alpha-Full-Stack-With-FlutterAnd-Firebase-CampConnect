@@ -11,13 +11,11 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  final nameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
 
   @override
   void dispose() {
-    nameCtrl.dispose();
     emailCtrl.dispose();
     passCtrl.dispose();
     super.dispose();
@@ -58,22 +56,6 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
 
                   const SizedBox(height: 32),
-
-                  // Name
-                  TextField(
-                    controller: nameCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Name',
-                      prefixIcon: const Icon(Icons.person_outline),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
 
                   // Email
                   TextField(
@@ -119,11 +101,6 @@ class _SignupScreenState extends State<SignupScreen> {
                           final user = await AuthService().signUp(
                             emailCtrl.text.trim(),
                             passCtrl.text.trim(),
-                            {
-                              'name': nameCtrl.text.trim(),
-                              'email': emailCtrl.text.trim(),
-                              'role': 'student',
-                            },
                           );
 
                           if (user != null && context.mounted) {
