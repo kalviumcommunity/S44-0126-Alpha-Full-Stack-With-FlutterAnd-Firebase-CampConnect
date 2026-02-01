@@ -13,29 +13,37 @@ class AuthService {
 
   // 🔐 Secure signup (role enforced)
   Future<User?> signUp(String email, String password) async {
-    final cred = await _auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    try {
+      final cred = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-    final user = cred.user;
-    if (user != null) {
-      await _firestore.collection('users').doc(user.uid).set({
-        'email': email,
-        'role': 'student', // 🔒 enforced
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      final user = cred.user;
+      if (user != null) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'email': email,
+          'role': 'student', // 🔒 enforced
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      return user;
+    } on FirebaseAuthException {
+      return null;
     }
-
-    return user;
   }
 
   Future<User?> login(String email, String password) async {
-    final cred = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    return cred.user;
+    try {
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return cred.user;
+    } on FirebaseAuthException {
+      return null;
+    }
   }
 
   Future<void> logout() async {

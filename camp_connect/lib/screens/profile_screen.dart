@@ -12,11 +12,13 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService(); // ✅ single instance
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 930;
 
     return CustomScrollView(
       slivers: [
+        // ================= APP BAR =================
         SliverAppBar(
           pinned: true,
           centerTitle: true,
@@ -25,7 +27,7 @@ class ProfileScreen extends StatelessWidget {
           // 🔹 ADMIN BADGE (VISUAL ONLY)
           actions: [
             StreamBuilder<Map<String, dynamic>?>(
-              stream: AuthService().streamUserProfile(),
+              stream: authService.streamUserProfile(),
               builder: (context, snapshot) {
                 final isAdmin = snapshot.data?['role'] == 'admin';
                 if (!isAdmin) return const SizedBox();
@@ -35,10 +37,7 @@ class ProfileScreen extends StatelessWidget {
                   child: Chip(
                     label: Text('ADMIN'),
                     backgroundColor: Colors.deepPurple,
-                    labelStyle: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    labelStyle: TextStyle(color: Colors.white),
                   ),
                 );
               },
@@ -73,16 +72,17 @@ class ProfileScreen extends StatelessWidget {
                           const SizedBox(height: 16),
 
                           StreamBuilder<Map<String, dynamic>?>(
-                            stream: AuthService().streamUserProfile(),
+                            stream: authService.streamUserProfile(),
                             builder: (context, snapshot) {
-                              if (!snapshot.hasData) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
                                 return const CircularProgressIndicator();
                               }
 
-                              final data = snapshot.data!;
+                              final data = snapshot.data;
                               final email =
-                                  AuthService().currentUser?.email ?? '';
-                              final role = (data['role'] ?? 'student')
+                                  authService.currentUser?.email ?? '';
+                              final role = (data?['role'] ?? 'student')
                                   .toString();
 
                               return Column(
@@ -115,7 +115,7 @@ class ProfileScreen extends StatelessWidget {
                     const Divider(),
                     const SizedBox(height: 24),
 
-                    // ================= EVENTS SECTION =================
+                    // ================= MY REGISTRATIONS =================
                     const Text(
                       'My Registrations',
                       style: TextStyle(
@@ -152,33 +152,31 @@ class ProfileScreen extends StatelessWidget {
 
                             final today = todayDate();
 
+                            // 🔹 Filter registered events
                             final registeredEvents = eventSnapshot.data!
                                 .where((e) => registeredIds.contains(e['id']))
                                 .toList();
 
-                            final upcomingEvents =
-                                registeredEvents
-                                    .where(
-                                      (e) => !normalizeDate(
-                                        e['date'],
-                                      ).isBefore(today),
-                                    )
-                                    .toList()
-                                  ..sort(
-                                    (a, b) => a['date'].compareTo(b['date']),
-                                  );
+                            // 🔹 SINGLE-PASS split (review fix)
+                            final upcomingEvents = <Map<String, dynamic>>[];
+                            final pastEvents = <Map<String, dynamic>>[];
 
-                            final pastEvents =
-                                registeredEvents
-                                    .where(
-                                      (e) => normalizeDate(
-                                        e['date'],
-                                      ).isBefore(today),
-                                    )
-                                    .toList()
-                                  ..sort(
-                                    (a, b) => b['date'].compareTo(a['date']),
-                                  );
+                            for (final event in registeredEvents) {
+                              if (normalizeDate(
+                                event['date'],
+                              ).isBefore(today)) {
+                                pastEvents.add(event);
+                              } else {
+                                upcomingEvents.add(event);
+                              }
+                            }
+
+                            upcomingEvents.sort(
+                              (a, b) => a['date'].compareTo(b['date']),
+                            );
+                            pastEvents.sort(
+                              (a, b) => b['date'].compareTo(a['date']),
+                            );
 
                             final orderedEvents = [
                               ...upcomingEvents,
@@ -259,7 +257,7 @@ class ProfileScreen extends StatelessWidget {
                         height: 52,
                         child: OutlinedButton(
                           onPressed: () async {
-                            await AuthService().logout();
+                            await authService.logout();
                             if (!context.mounted) return;
 
                             Navigator.pushAndRemoveUntil(
@@ -283,6 +281,7 @@ class ProfileScreen extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
                             ),
                           ),
                         ),
