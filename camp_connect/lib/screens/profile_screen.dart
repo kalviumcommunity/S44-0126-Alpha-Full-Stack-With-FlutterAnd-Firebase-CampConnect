@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/event_service.dart';
 import '../services/registration_service.dart';
+import '../utils/date_utils.dart';
 import '../widgets/event_card.dart';
 import 'event_detail_screen.dart';
 import 'login_screen.dart';
@@ -11,15 +12,37 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authService = AuthService(); // ✅ single instance
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 930;
 
     return CustomScrollView(
       slivers: [
-        const SliverAppBar(
+        // ================= APP BAR =================
+        SliverAppBar(
           pinned: true,
           centerTitle: true,
-          title: Text('Profile'),
+          title: const Text('Profile'),
+
+          // 🔹 ADMIN BADGE (VISUAL ONLY)
+          actions: [
+            StreamBuilder<Map<String, dynamic>?>(
+              stream: authService.streamUserProfile(),
+              builder: (context, snapshot) {
+                final isAdmin = snapshot.data?['role'] == 'admin';
+                if (!isAdmin) return const SizedBox();
+
+                return const Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: Chip(
+                    label: Text('ADMIN'),
+                    backgroundColor: Colors.deepPurple,
+                    labelStyle: TextStyle(color: Colors.white),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
 
         SliverPadding(
@@ -27,7 +50,6 @@ class ProfileScreen extends StatelessWidget {
           sliver: SliverToBoxAdapter(
             child: Center(
               child: ConstrainedBox(
-                // ✅ SAME AS HOME TAB
                 constraints: const BoxConstraints(maxWidth: 1000),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,17 +71,18 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
 
-                          StreamBuilder<Map<String, dynamic>>(
-                            stream: AuthService().streamUserProfile(),
+                          StreamBuilder<Map<String, dynamic>?>(
+                            stream: authService.streamUserProfile(),
                             builder: (context, snapshot) {
-                              if (!snapshot.hasData) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
                                 return const CircularProgressIndicator();
                               }
 
-                              final data = snapshot.data!;
+                              final data = snapshot.data;
                               final email =
-                                  AuthService().currentUser?.email ?? '';
-                              final role = (data['role'] ?? 'Student')
+                                  authService.currentUser?.email ?? '';
+                              final role = (data?['role'] ?? 'student')
                                   .toString();
 
                               return Column(
@@ -92,7 +115,7 @@ class ProfileScreen extends StatelessWidget {
                     const Divider(),
                     const SizedBox(height: 24),
 
-                    // ================= EVENTS SECTION =================
+                    // ================= MY REGISTRATIONS =================
                     const Text(
                       'My Registrations',
                       style: TextStyle(
@@ -127,26 +150,54 @@ class ProfileScreen extends StatelessWidget {
                               );
                             }
 
-                            final events = eventSnapshot.data!
+                            final today = todayDate();
+
+                            // 🔹 Filter registered events
+                            final registeredEvents = eventSnapshot.data!
                                 .where((e) => registeredIds.contains(e['id']))
                                 .toList();
 
-                            // ✅ SAME GRID LOGIC AS HOME TAB
+                            // 🔹 SINGLE-PASS split (review fix)
+                            final upcomingEvents = <Map<String, dynamic>>[];
+                            final pastEvents = <Map<String, dynamic>>[];
+
+                            for (final event in registeredEvents) {
+                              if (normalizeDate(
+                                event['date'],
+                              ).isBefore(today)) {
+                                pastEvents.add(event);
+                              } else {
+                                upcomingEvents.add(event);
+                              }
+                            }
+
+                            upcomingEvents.sort(
+                              (a, b) => a['date'].compareTo(b['date']),
+                            );
+                            pastEvents.sort(
+                              (a, b) => b['date'].compareTo(a['date']),
+                            );
+
+                            final orderedEvents = [
+                              ...upcomingEvents,
+                              ...pastEvents,
+                            ];
+
                             return isWide
                                 ? GridView.builder(
                                     shrinkWrap: true,
                                     physics:
                                         const NeverScrollableScrollPhysics(),
-                                    itemCount: events.length,
+                                    itemCount: orderedEvents.length,
                                     gridDelegate:
                                         const SliverGridDelegateWithFixedCrossAxisCount(
                                           crossAxisCount: 2,
                                           mainAxisSpacing: 16,
                                           crossAxisSpacing: 16,
-                                          childAspectRatio: 2.8, // ✅ SAME
+                                          childAspectRatio: 2.8,
                                         ),
                                     itemBuilder: (context, index) {
-                                      final event = events[index];
+                                      final event = orderedEvents[index];
                                       return EventCard(
                                         event: event,
                                         isRegistered: true,
@@ -167,9 +218,9 @@ class ProfileScreen extends StatelessWidget {
                                     shrinkWrap: true,
                                     physics:
                                         const NeverScrollableScrollPhysics(),
-                                    itemCount: events.length,
+                                    itemCount: orderedEvents.length,
                                     itemBuilder: (context, index) {
-                                      final event = events[index];
+                                      final event = orderedEvents[index];
                                       return Padding(
                                         padding: const EdgeInsets.only(
                                           bottom: 16,
@@ -206,7 +257,7 @@ class ProfileScreen extends StatelessWidget {
                         height: 52,
                         child: OutlinedButton(
                           onPressed: () async {
-                            await AuthService().logout();
+                            await authService.logout();
                             if (!context.mounted) return;
 
                             Navigator.pushAndRemoveUntil(
