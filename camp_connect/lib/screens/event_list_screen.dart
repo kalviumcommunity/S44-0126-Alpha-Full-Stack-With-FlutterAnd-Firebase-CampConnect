@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/registration_service.dart';
 import '../services/event_service.dart';
+import '../services/auth_service.dart';
+import 'admin/create_event_screen.dart';
 import '../utils/date_utils.dart';
 import '../widgets/event_card.dart';
 import 'event_detail_screen.dart';
@@ -13,8 +15,43 @@ class EventListScreen extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 930;
 
+    final authService = AuthService();
+
     return Scaffold(
       appBar: AppBar(title: const Text('All Events'), centerTitle: true),
+
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+
+      // 🔹 ADMIN-ONLY STICKY BUTTON
+      floatingActionButton: StreamBuilder<Map<String, dynamic>?>(
+        stream: authService.streamUserProfile(),
+        builder: (context, snapshot) {
+          final isAdmin = snapshot.data?['role'] == 'admin';
+          if (!isAdmin) return const SizedBox.shrink();
+
+          return Material(
+            elevation: 6,
+            color: Colors.deepPurple,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AdminCreateEventScreen(),
+                  ),
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(16),
+                child: Icon(Icons.add, color: Colors.white, size: 28),
+              ),
+            ),
+          );
+        },
+      ),
+
       body: StreamBuilder<List<String>>(
         stream: RegistrationService().streamUserRegistrations(),
         builder: (context, regSnapshot) {
@@ -33,17 +70,20 @@ class EventListScreen extends StatelessWidget {
 
               final today = todayDate();
 
-              final upcomingEvents =
-                  snapshot.data!
-                      .where((e) => !normalizeDate(e['date']).isBefore(today))
-                      .toList()
-                    ..sort((a, b) => a['date'].compareTo(b['date']));
+              final upcomingEvents = <Map<String, dynamic>>[];
+              final pastEvents = <Map<String, dynamic>>[];
 
-              final pastEvents =
-                  snapshot.data!
-                      .where((e) => normalizeDate(e['date']).isBefore(today))
-                      .toList()
-                    ..sort((a, b) => b['date'].compareTo(a['date']));
+              for (final event in snapshot.data!) {
+                final date = normalizeDate(event['date']);
+                if (date.isBefore(today)) {
+                  pastEvents.add(event);
+                } else {
+                  upcomingEvents.add(event);
+                }
+              }
+
+              upcomingEvents.sort((a, b) => a['date'].compareTo(b['date']));
+              pastEvents.sort((a, b) => b['date'].compareTo(a['date']));
 
               final orderedEvents = [...upcomingEvents, ...pastEvents];
 

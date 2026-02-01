@@ -164,7 +164,9 @@ class EventDetailScreen extends StatelessWidget {
                             foregroundColor: isRegistered
                                 ? Colors.grey
                                 : textColor,
-                            side: BorderSide(color: textColor.withOpacity(0.4)),
+                            side: BorderSide(
+                              color: textColor.withAlpha((0.4 * 255).toInt()),
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(24),
                             ),

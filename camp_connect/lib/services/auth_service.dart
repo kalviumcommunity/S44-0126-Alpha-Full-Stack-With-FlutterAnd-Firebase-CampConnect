@@ -69,4 +69,11 @@ class AuthService {
     final doc = await _firestore.collection('users').doc(uid).get();
     return doc.data()?['role'] == 'admin';
   }
+
+  // ✅ Admin role (REAL-TIME STREAM)
+  Stream<bool> isAdminStream() {
+    return streamUserProfile().map((data) {
+      return data?['role'] == 'admin';
+    });
+  }
 }
