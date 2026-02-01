@@ -25,8 +25,9 @@ class AuthService {
 
       if (user != null) {
         await _firestore.collection('users').doc(user.uid).set({
-          ...userData,
-          'email': email, // ensure stored
+          'name': userData['name'],
+          'email': email,
+          'role': 'student',
           'createdAt': FieldValue.serverTimestamp(),
         });
       }

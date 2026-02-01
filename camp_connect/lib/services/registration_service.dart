@@ -2,11 +2,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class RegistrationService {
+  static final RegistrationService _instance = RegistrationService._internal();
+  factory RegistrationService() => _instance;
+  RegistrationService._internal();
+
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
 
   Future<bool> isRegistered(String eventId) async {
-    final uid = _auth.currentUser!.uid;
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return false;
 
     final query = await _firestore
         .collection('registrations')
@@ -19,7 +24,8 @@ class RegistrationService {
   }
 
   Future<void> registerForEvent(String eventId) async {
-    final uid = _auth.currentUser!.uid;
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
 
     final alreadyRegistered = await isRegistered(eventId);
     if (alreadyRegistered) return;
@@ -32,14 +38,16 @@ class RegistrationService {
   }
 
   Stream<List<String>> streamUserRegistrations() {
-    final uid = _auth.currentUser!.uid;
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return Stream.value([]);
 
     return _firestore
         .collection('registrations')
         .where('userId', isEqualTo: uid)
         .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) => doc['eventId'] as String).toList();
-        });
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((d) => d['eventId'] as String).toList(),
+        );
   }
 }

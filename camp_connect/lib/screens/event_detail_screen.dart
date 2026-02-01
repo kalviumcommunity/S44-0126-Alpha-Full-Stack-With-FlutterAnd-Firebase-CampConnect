@@ -136,18 +136,21 @@ class EventDetailScreen extends StatelessWidget {
                   child: SizedBox(
                     width: size.width > 720 ? 400 : double.infinity,
                     height: 52,
-                    child: FutureBuilder<bool>(
-                      future: RegistrationService().isRegistered(eventId),
+                    child: StreamBuilder<List<String>>(
+                      stream: RegistrationService().streamUserRegistrations(),
                       builder: (context, snapshot) {
-                        final registered = snapshot.data ?? false;
+                        final isRegistered =
+                            snapshot.hasData &&
+                            snapshot.data!.contains(eventId);
 
                         return OutlinedButton(
-                          onPressed: registered
+                          onPressed: isRegistered
                               ? null
                               : () async {
                                   await RegistrationService().registerForEvent(
                                     eventId,
                                   );
+                                  if (!context.mounted) return;
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('Registered successfully'),
@@ -155,21 +158,19 @@ class EventDetailScreen extends StatelessWidget {
                                   );
                                 },
                           style: OutlinedButton.styleFrom(
-                            backgroundColor: registered
+                            backgroundColor: isRegistered
                                 ? Colors.grey.shade200
                                 : badgeColor,
-                            foregroundColor: registered
+                            foregroundColor: isRegistered
                                 ? Colors.grey
                                 : textColor,
-                            side: BorderSide(
-                              color: textColor.withValues(alpha: 0.4),
-                            ),
+                            side: BorderSide(color: textColor.withOpacity(0.4)),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(24),
                             ),
                           ),
                           child: Text(
-                            registered ? 'Registered' : 'Register',
+                            isRegistered ? 'Registered' : 'Register',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
