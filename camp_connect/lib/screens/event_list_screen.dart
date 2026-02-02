@@ -1,20 +1,50 @@
-import 'package:camp_connect/widgets/admin_add_event_button.dart';
 import 'package:flutter/material.dart';
 import '../services/registration_service.dart';
 import '../services/event_service.dart';
-import 'admin/create_event_screen.dart';
-import '../utils/date_utils.dart';
+import '../services/auth_service.dart';
 import '../widgets/event_card.dart';
 import '../widgets/admin_badge.dart';
+import '../widgets/admin_add_event_button.dart';
+import '../widgets/cancel_event_dialog.dart';
+import '../utils/date_utils.dart';
+import 'admin/create_event_screen.dart';
+import 'admin/edit_event_screen.dart';
 import 'event_detail_screen.dart';
 
 class EventListScreen extends StatelessWidget {
   const EventListScreen({super.key});
 
+  Future<void> _confirmAndCancelEvent(
+    BuildContext context,
+    String eventId,
+  ) async {
+    final confirmed = await CancelEventDialog.show(context);
+    if (confirmed != true) return;
+
+    try {
+      await EventService().cancelEvent(eventId);
+
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red.shade50,
+          content: Text(
+            'Event cancelled',
+            style: TextStyle(color: Colors.red.shade800),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isWide = width >= 930;
+    final currentUserId = AuthService().currentUser?.uid;
 
     return Scaffold(
       appBar: AppBar(
@@ -23,9 +53,6 @@ class EventListScreen extends StatelessWidget {
         actions: const [AdminBadge()],
       ),
 
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-
-      // 🔹 ADMIN-ONLY STICKY BUTTON
       floatingActionButton: AdminAddEventButton(
         onTap: () {
           Navigator.push(
@@ -43,90 +70,64 @@ class EventListScreen extends StatelessWidget {
           return StreamBuilder<List<Map<String, dynamic>>>(
             stream: EventService().streamEvents(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              if (!snapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(child: Text('No events found'));
-              }
-
+              final events = snapshot.data!;
               final today = todayDate();
 
-              final upcomingEvents = <Map<String, dynamic>>[];
-              final pastEvents = <Map<String, dynamic>>[];
+              final upcoming = <Map<String, dynamic>>[];
+              final past = <Map<String, dynamic>>[];
 
-              for (final event in snapshot.data!) {
-                final date = normalizeDate(event['date']);
-                if (date.isBefore(today)) {
-                  pastEvents.add(event);
-                } else {
-                  upcomingEvents.add(event);
-                }
+              for (final e in events) {
+                normalizeDate(e['date']).isBefore(today)
+                    ? past.add(e)
+                    : upcoming.add(e);
               }
 
-              upcomingEvents.sort((a, b) => a['date'].compareTo(b['date']));
-              pastEvents.sort((a, b) => b['date'].compareTo(a['date']));
+              upcoming.sort((a, b) => a['date'].compareTo(b['date']));
+              past.sort((a, b) => b['date'].compareTo(a['date']));
 
-              final orderedEvents = [...upcomingEvents, ...pastEvents];
+              final ordered = [...upcoming, ...past];
 
-              return Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1000),
-                  child: isWide
-                      ? GridView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: orderedEvents.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 16,
-                                crossAxisSpacing: 16,
-                                childAspectRatio: 2.8,
-                              ),
-                          itemBuilder: (context, index) {
-                            final event = orderedEvents[index];
-                            return EventCard(
-                              event: event,
-                              isRegistered: registeredIds.contains(event['id']),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        EventDetailScreen(event: event),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: orderedEvents.length,
-                          itemBuilder: (context, index) {
-                            final event = orderedEvents[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: EventCard(
-                                event: event,
-                                isRegistered: registeredIds.contains(
-                                  event['id'],
-                                ),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          EventDetailScreen(event: event),
-                                    ),
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                ),
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: ordered.length,
+                itemBuilder: (context, i) {
+                  final event = ordered[i];
+                  final isOwnerAdmin =
+                      currentUserId != null &&
+                      event['createdBy'] == currentUserId;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: EventCard(
+                      event: event,
+                      isRegistered: registeredIds.contains(event['id']),
+                      isAdmin: isOwnerAdmin,
+                      onEdit: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AdminEditEventScreen(event: event),
+                          ),
+                        );
+                      },
+                      onCancel: () {
+                        _confirmAndCancelEvent(context, event['id']);
+                      },
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EventDetailScreen(event: event),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
               );
             },
           );
