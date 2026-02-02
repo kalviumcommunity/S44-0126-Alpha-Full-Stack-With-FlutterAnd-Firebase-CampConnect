@@ -4,6 +4,7 @@ import '../services/registration_service.dart';
 import '../utils/date_utils.dart';
 import '../widgets/event_card.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/admin_badge.dart';
 import 'event_detail_screen.dart';
 import 'event_list_screen.dart';
 import 'profile_screen.dart';
@@ -69,6 +70,7 @@ class HomeTab extends StatelessWidget {
                   pinned: true,
                   centerTitle: true,
                   title: Text('Upcoming Events'),
+                  actions: [AdminBadge()],
                 ),
                 SliverPadding(
                   padding: const EdgeInsets.all(16),
