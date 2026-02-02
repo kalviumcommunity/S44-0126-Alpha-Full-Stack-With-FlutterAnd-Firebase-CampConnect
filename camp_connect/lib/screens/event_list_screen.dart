@@ -1,10 +1,11 @@
+import 'package:camp_connect/widgets/admin_add_event_button.dart';
 import 'package:flutter/material.dart';
 import '../services/registration_service.dart';
 import '../services/event_service.dart';
-import '../services/auth_service.dart';
 import 'admin/create_event_screen.dart';
 import '../utils/date_utils.dart';
 import '../widgets/event_card.dart';
+import '../widgets/admin_badge.dart';
 import 'event_detail_screen.dart';
 
 class EventListScreen extends StatelessWidget {
@@ -15,39 +16,21 @@ class EventListScreen extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 930;
 
-    final authService = AuthService();
-
     return Scaffold(
-      appBar: AppBar(title: const Text('All Events'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('All Events'),
+        centerTitle: true,
+        actions: const [AdminBadge()],
+      ),
 
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
       // 🔹 ADMIN-ONLY STICKY BUTTON
-      floatingActionButton: StreamBuilder<Map<String, dynamic>?>(
-        stream: authService.streamUserProfile(),
-        builder: (context, snapshot) {
-          final isAdmin = snapshot.data?['role'] == 'admin';
-          if (!isAdmin) return const SizedBox.shrink();
-
-          return Material(
-            elevation: 6,
-            color: Colors.deepPurple,
-            shape: const CircleBorder(),
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AdminCreateEventScreen(),
-                  ),
-                );
-              },
-              child: const Padding(
-                padding: EdgeInsets.all(16),
-                child: Icon(Icons.add, color: Colors.white, size: 28),
-              ),
-            ),
+      floatingActionButton: AdminAddEventButton(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminCreateEventScreen()),
           );
         },
       ),

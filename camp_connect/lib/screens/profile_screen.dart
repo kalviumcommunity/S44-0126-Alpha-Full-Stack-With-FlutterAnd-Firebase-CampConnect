@@ -4,6 +4,7 @@ import '../services/event_service.dart';
 import '../services/registration_service.dart';
 import '../utils/date_utils.dart';
 import '../widgets/event_card.dart';
+import '../widgets/admin_badge.dart';
 import 'event_detail_screen.dart';
 import 'login_screen.dart';
 
@@ -23,38 +24,10 @@ class ProfileScreen extends StatelessWidget {
           pinned: true,
           centerTitle: true,
           title: const Text('Profile'),
-
-          // 🔹 ADMIN BADGE (VISUAL ONLY)
-          actions: [
-            StreamBuilder<Map<String, dynamic>?>(
-              stream: authService.streamUserProfile(),
-              builder: (context, snapshot) {
-                final isAdmin = snapshot.data?['role'] == 'admin';
-                if (!isAdmin) return const SizedBox();
-
-                return Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: Chip(
-                    label: const Text(
-                      'ADMIN',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    backgroundColor: Colors.deepPurple,
-                    labelStyle: const TextStyle(color: Colors.white),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
+          actions: const [AdminBadge()],
         ),
 
+        // ================= PROFILE CONTENT =================
         SliverPadding(
           padding: const EdgeInsets.all(16),
           sliver: SliverToBoxAdapter(
@@ -167,7 +140,7 @@ class ProfileScreen extends StatelessWidget {
                                 .where((e) => registeredIds.contains(e['id']))
                                 .toList();
 
-                            // 🔹 SINGLE-PASS split (review fix)
+                            // 🔹 SINGLE-PASS split
                             final upcomingEvents = <Map<String, dynamic>>[];
                             final pastEvents = <Map<String, dynamic>>[];
 
