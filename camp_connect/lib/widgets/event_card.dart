@@ -30,12 +30,16 @@ class EventCard extends StatelessWidget {
     final isToday = eventDate.isAtSameMomentAs(today);
 
     final status = event['status'] ?? 'active';
+    final isCancelled = status == 'cancelled';
+
+    // 🚫 ONLY ALLOW UPDATE / CANCEL FOR FUTURE EVENTS
+    final canModify = isAdmin && !isCancelled && !isPast;
 
     late String statusText;
     late Color badgeColor;
     late Color badgeTextColor;
 
-    if (status == 'cancelled') {
+    if (isCancelled) {
       statusText = 'Cancelled';
       badgeColor = Colors.red.shade100;
       badgeTextColor = Colors.red.shade800;
@@ -53,8 +57,6 @@ class EventCard extends StatelessWidget {
       badgeTextColor = Colors.green.shade800;
     }
 
-    final isCancelled = status == 'cancelled';
-
     return Stack(
       children: [
         // ================= CARD =================
@@ -65,11 +67,11 @@ class EventCard extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: onTap,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: onTap, // ✅ navigation stays enabled
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -149,31 +151,28 @@ class EventCard extends StatelessWidget {
         ),
 
         // ================= ADMIN BUTTONS =================
-        if (isAdmin && !isCancelled)
+        if (canModify)
           Positioned(
             bottom: 18,
             right: 18,
-            child: Material(
-              color: Colors.transparent,
-              child: Row(
-                children: [
-                  _AdminCircleButton(
-                    icon: Icons.edit,
-                    bgColor: Colors.blue.shade100,
-                    borderColor: Colors.blue.shade700,
-                    iconColor: Colors.blue.shade700,
-                    onTap: onEdit,
-                  ),
-                  const SizedBox(width: 8),
-                  _AdminCircleButton(
-                    icon: Icons.close,
-                    bgColor: Colors.red.shade100,
-                    borderColor: Colors.red.shade700,
-                    iconColor: Colors.red.shade700,
-                    onTap: onCancel,
-                  ),
-                ],
-              ),
+            child: Row(
+              children: [
+                _AdminCircleButton(
+                  icon: Icons.edit,
+                  bgColor: Colors.blue.shade100,
+                  borderColor: Colors.blue.shade700,
+                  iconColor: Colors.blue.shade700,
+                  onTap: onEdit,
+                ),
+                const SizedBox(width: 8),
+                _AdminCircleButton(
+                  icon: Icons.close,
+                  bgColor: Colors.red.shade100,
+                  borderColor: Colors.red.shade700,
+                  iconColor: Colors.red.shade700,
+                  onTap: onCancel,
+                ),
+              ],
             ),
           ),
       ],
