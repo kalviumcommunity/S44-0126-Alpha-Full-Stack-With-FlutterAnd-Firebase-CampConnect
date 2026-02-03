@@ -50,14 +50,14 @@ class AuthService {
     await _auth.signOut();
   }
 
-  // ✅ FIXED: nullable stream
+  // 🔹 User profile
   Stream<Map<String, dynamic>?> streamUserProfile() {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return Stream.value(null);
 
     return _firestore.collection('users').doc(uid).snapshots().map((doc) {
       if (!doc.exists) return null;
-      return doc.data(); // Map<String, dynamic>
+      return doc.data();
     });
   }
 
@@ -70,7 +70,7 @@ class AuthService {
     return doc.data()?['role'] == 'admin';
   }
 
-  // ✅ Admin role (REAL-TIME STREAM)
+  // ✅ Admin role
   Stream<bool> isAdminStream() {
     return streamUserProfile().map((data) {
       return data?['role'] == 'admin';

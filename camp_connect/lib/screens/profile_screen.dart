@@ -11,6 +11,18 @@ import 'login_screen.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  Widget _emptyRegistrations() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 32),
+      child: Center(
+        child: Text(
+          'No registrations yet',
+          style: TextStyle(color: Colors.grey),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = AuthService(); // ✅ single instance
@@ -37,9 +49,9 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ================= PROFILE HEADER =================
                     const SizedBox(height: 8),
 
+                    // ================= PROFILE HEADER =================
                     Center(
                       child: Column(
                         children: [
@@ -114,11 +126,9 @@ class ProfileScreen extends StatelessWidget {
                       builder: (context, regSnapshot) {
                         final registeredIds = regSnapshot.data ?? [];
 
+                        // 🚫 No registrations at all
                         if (registeredIds.isEmpty) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 32),
-                            child: Center(child: Text('No registrations yet')),
-                          );
+                          return _emptyRegistrations();
                         }
 
                         return StreamBuilder<List<Map<String, dynamic>>>(
@@ -135,23 +145,26 @@ class ProfileScreen extends StatelessWidget {
 
                             final today = todayDate();
 
-                            // 🔹 Filter registered events
-                            final registeredEvents = eventSnapshot.data!
-                                .where((e) => registeredIds.contains(e['id']))
+                            final eventMap = {
+                              for (final e in eventSnapshot.data!) e['id']: e,
+                            };
+
+                            final registeredEvents = registeredIds
+                                .where((id) => eventMap.containsKey(id))
+                                .map((id) => eventMap[id]!)
                                 .toList();
 
-                            // 🔹 SINGLE-PASS split
+                            if (registeredEvents.isEmpty) {
+                              return _emptyRegistrations();
+                            }
+
                             final upcomingEvents = <Map<String, dynamic>>[];
                             final pastEvents = <Map<String, dynamic>>[];
 
                             for (final event in registeredEvents) {
-                              if (normalizeDate(
-                                event['date'],
-                              ).isBefore(today)) {
-                                pastEvents.add(event);
-                              } else {
-                                upcomingEvents.add(event);
-                              }
+                              normalizeDate(event['date']).isBefore(today)
+                                  ? pastEvents.add(event)
+                                  : upcomingEvents.add(event);
                             }
 
                             upcomingEvents.sort(

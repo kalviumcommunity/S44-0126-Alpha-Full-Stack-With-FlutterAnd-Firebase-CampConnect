@@ -5,6 +5,14 @@ class EventService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // ================= HELPERS =================
+  DateTime _normalizeDate(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  DateTime _todayDate() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
   // ================= STREAM EVENTS =================
   Stream<List<Map<String, dynamic>>> streamEvents() {
     return _firestore.collection('events').orderBy('date').snapshots().map((
@@ -81,15 +89,22 @@ class EventService {
     }
 
     final data = snapshot.data()!;
+    final eventDate = _normalizeDate((data['date'] as Timestamp).toDate());
+    final today = _todayDate();
 
     // 🔒 OWNER CHECK
     if (data['createdBy'] != uid) {
       throw Exception('You can only edit your own events');
     }
 
-    // 🚫 CANCELLED EVENTS CANNOT BE UPDATED
+    // 🚫 CANCELLED EVENTS
     if (data['status'] == 'cancelled') {
       throw Exception('Cancelled events cannot be updated');
+    }
+
+    // 🚫 PAST EVENTS
+    if (eventDate.isBefore(today)) {
+      throw Exception('Ended events cannot be updated');
     }
 
     await ref.update({
@@ -122,15 +137,22 @@ class EventService {
     }
 
     final data = snapshot.data()!;
+    final eventDate = _normalizeDate((data['date'] as Timestamp).toDate());
+    final today = _todayDate();
 
     // 🔒 OWNER CHECK
     if (data['createdBy'] != uid) {
       throw Exception('You can only cancel your own events');
     }
 
-    // 🚫 DOUBLE CANCEL PROTECTION
+    // 🚫 DOUBLE CANCEL
     if (data['status'] == 'cancelled') {
       throw Exception('Event already cancelled');
+    }
+
+    // 🚫 PAST EVENTS
+    if (eventDate.isBefore(today)) {
+      throw Exception('Ended events cannot be cancelled');
     }
 
     await ref.update({
