@@ -35,15 +35,23 @@ class ProfileScreen extends StatelessWidget {
   // ================= LOGOUT =================
 
   Future<void> _logout(BuildContext context, AuthService authService) async {
-    await authService.logout();
+    try {
+      await authService.logout();
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Logout failed')));
+
+      return;
+    }
 
     if (!context.mounted) return;
 
     Navigator.pushAndRemoveUntil(
       context,
-
       MaterialPageRoute(builder: (_) => const LoginScreen()),
-
       (route) => false,
     );
   }

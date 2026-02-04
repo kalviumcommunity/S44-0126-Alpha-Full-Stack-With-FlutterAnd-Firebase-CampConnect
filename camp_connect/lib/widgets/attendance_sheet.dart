@@ -21,27 +21,26 @@ class AttendanceSheet extends StatelessWidget {
 
   // ================= HELPERS =================
 
-  Future<String> _getUserEmail(String uid) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .get();
-
-    return doc.data()?['email'] ?? 'Unknown';
-  }
-
   Future<List<Map<String, dynamic>>> _attachEmails(
     List<Map<String, dynamic>> regs,
   ) async {
-    final result = <Map<String, dynamic>>[];
+    if (regs.isEmpty) return [];
 
-    for (final r in regs) {
-      final email = await _getUserEmail(r['userId']);
+    final userIds = regs.map((r) => r['userId'] as String).toSet().toList();
 
-      result.add({...r, 'email': email});
-    }
+    final usersSnap = await FirebaseFirestore.instance
+        .collection('users')
+        .where(FieldPath.documentId, whereIn: userIds)
+        .get();
 
-    return result;
+    final emailMap = {
+      for (var doc in usersSnap.docs) doc.id: doc.data()['email'] ?? 'Unknown',
+    };
+
+    return regs.map((r) {
+      final email = emailMap[r['userId']] ?? 'Unknown';
+      return {...r, 'email': email};
+    }).toList();
   }
 
   // ================= BUILD =================

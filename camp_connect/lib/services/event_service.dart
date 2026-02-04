@@ -288,6 +288,10 @@ class EventService {
 
     // ================= REGISTRATION =================
 
+    if (registrationId.isEmpty) {
+      throw Exception('Invalid request');
+    }
+
     final regRef = _firestore.collection('registrations').doc(registrationId);
 
     final regSnap = await regRef.get();
@@ -297,8 +301,7 @@ class EventService {
     }
 
     final regData = regSnap.data()!;
-
-    final String eventId = regData['eventId'];
+    final eventId = regData['eventId'];
 
     // ================= EVENT =================
 
@@ -307,21 +310,19 @@ class EventService {
     // ================= VALIDATION =================
 
     if (eventData['createdBy'] != uid) {
-      throw Exception('Only creator can mark attendance');
+      throw Exception('Unauthorized');
     }
 
     if (eventData['status'] == 'cancelled' ||
         eventData['status'] == 'completed') {
-      throw Exception('Cannot mark closed events');
+      throw Exception('Event closed');
     }
 
     // ================= UPDATE =================
 
     await regRef.update({
       'attended': attended,
-
       'markedBy': uid,
-
       'markedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -329,6 +330,16 @@ class EventService {
   // ================= ATTENDANCE STATS =================
 
   Future<Map<String, int>> getAttendanceStats(String eventId) async {
+    await _requireAdmin();
+
+    final uid = currentUserId!;
+
+    final event = await _getEvent(eventId);
+
+    if (event['createdBy'] != uid) {
+      throw Exception('Unauthorized');
+    }
+
     final snapshot = await _firestore
         .collection('registrations')
         .where('eventId', isEqualTo: eventId)
