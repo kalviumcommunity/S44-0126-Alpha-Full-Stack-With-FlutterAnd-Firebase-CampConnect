@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/event_service.dart';
 import '../../services/auth_service.dart';
 import '../../utils/date_utils.dart';
@@ -13,22 +14,31 @@ class AdminEditEventScreen extends StatefulWidget {
 }
 
 class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
+  // ================= FORM =================
+
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController titleCtrl;
   late final TextEditingController descCtrl;
   late final TextEditingController locationCtrl;
 
+  // ================= STATE =================
+
   DateTime? selectedDate;
-  bool _submitted = false;
+  bool isSubmitted = false;
+
+  // ================= LIFECYCLE =================
 
   @override
   void initState() {
     super.initState();
 
     titleCtrl = TextEditingController(text: widget.event['title']);
+
     descCtrl = TextEditingController(text: widget.event['description']);
+
     locationCtrl = TextEditingController(text: widget.event['location']);
+
     selectedDate = widget.event['date'];
   }
 
@@ -37,8 +47,11 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
     titleCtrl.dispose();
     descCtrl.dispose();
     locationCtrl.dispose();
+
     super.dispose();
   }
+
+  // ================= INPUT UI =================
 
   InputDecoration _inputDecoration({
     required String label,
@@ -47,13 +60,17 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon),
+
       filled: true,
       fillColor: Colors.white,
+
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: Colors.grey.shade400),
       ),
+
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: const BorderSide(color: Colors.deepPurple, width: 1.6),
@@ -61,11 +78,15 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
     );
   }
 
+  // ================= DATE PICKER =================
+
   Future<void> _pickDate(FormFieldState<DateTime> field) async {
     final picked = await showDatePicker(
       context: context,
+
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
+
       initialDate: selectedDate ?? DateTime.now(),
     );
 
@@ -75,10 +96,13 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
     }
   }
 
-  Future<void> _updateEvent() async {
-    setState(() => _submitted = true);
+  // ================= UPDATE EVENT =================
 
-    final isValid = _formKey.currentState!.validate();
+  Future<void> _updateEvent() async {
+    setState(() => isSubmitted = true);
+
+    final bool isValid = _formKey.currentState!.validate();
+
     if (!isValid) return;
 
     try {
@@ -93,26 +117,32 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
       if (!mounted) return;
 
       Navigator.pop(context);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Event updated successfully')),
       );
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
+  // ================= AUTH =================
+
   @override
   Widget build(BuildContext context) {
     final authService = AuthService();
-    final isCancelled = widget.event['status'] == 'cancelled';
+
+    final bool isCancelled = widget.event['status'] == 'cancelled';
 
     return StreamBuilder<bool>(
       stream: authService.isAdminStream(),
+
       builder: (context, snapshot) {
-        final isAdmin = snapshot.data ?? false;
+        final bool isAdmin = snapshot.data ?? false;
 
         if (!isAdmin) {
           return const Scaffold(
@@ -131,94 +161,120 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
           );
         }
 
-        return _buildUI(context);
+        return _buildAdminUI(context);
       },
     );
   }
 
-  Widget _buildUI(BuildContext context) {
+  // ================= UI =================
+
+  Widget _buildAdminUI(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
+
+      // ================= APP BAR =================
       appBar: AppBar(
         title: const Text('Edit Event'),
+
         backgroundColor: Colors.grey.shade50,
         elevation: 0,
       ),
+
+      // ================= BODY =================
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
+
             child: Column(
               children: [
+                // ================= FORM =================
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 24,
                     ),
+
                     child: Form(
                       key: _formKey,
-                      autovalidateMode: _submitted
+
+                      autovalidateMode: isSubmitted
                           ? AutovalidateMode.onUserInteraction
                           : AutovalidateMode.disabled,
+
                       child: Column(
                         children: [
-                          // Title
+                          // ================= TITLE =================
                           TextFormField(
                             controller: titleCtrl,
+
                             decoration: _inputDecoration(
                               label: 'Event Title',
                               icon: Icons.event_outlined,
                             ),
+
                             validator: (v) => v == null || v.trim().isEmpty
                                 ? 'Title required'
                                 : null,
                           ),
+
                           const SizedBox(height: 16),
 
-                          // Description
+                          // ================= DESCRIPTION =================
                           TextFormField(
                             controller: descCtrl,
                             maxLines: 4,
+
                             decoration: _inputDecoration(
                               label: 'Description',
                               icon: Icons.description_outlined,
                             ),
+
                             validator: (v) => v == null || v.trim().isEmpty
                                 ? 'Description required'
                                 : null,
                           ),
+
                           const SizedBox(height: 16),
 
-                          // Location
+                          // ================= LOCATION =================
                           TextFormField(
                             controller: locationCtrl,
+
                             decoration: _inputDecoration(
                               label: 'Location',
                               icon: Icons.location_on_outlined,
                             ),
+
                             validator: (v) => v == null || v.trim().isEmpty
                                 ? 'Location required'
                                 : null,
                           ),
+
                           const SizedBox(height: 20),
 
-                          // Date
+                          // ================= DATE =================
                           FormField<DateTime>(
                             initialValue: selectedDate,
+
                             validator: (_) =>
                                 selectedDate == null ? 'Date required' : null,
+
                             builder: (field) {
                               return InkWell(
                                 onTap: () => _pickDate(field),
+
                                 borderRadius: BorderRadius.circular(14),
+
                                 child: InputDecorator(
                                   decoration: _inputDecoration(
                                     label: 'Event Date',
                                     icon: Icons.calendar_today_outlined,
                                   ).copyWith(errorText: field.errorText),
+
                                   child: Text(
                                     selectedDate == null
                                         ? 'Select date'
@@ -234,24 +290,32 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
                   ),
                 ),
 
-                // Update Button
+                // ================= UPDATE =================
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+
                   child: SizedBox(
                     width: size.width > 720 ? 400 : double.infinity,
+
                     height: 52,
+
                     child: ElevatedButton(
                       onPressed: _updateEvent,
+
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.deepPurple,
                         foregroundColor: Colors.white,
+
                         elevation: 0,
+
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
                       ),
+
                       child: const Text(
                         'Update Event',
+
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,

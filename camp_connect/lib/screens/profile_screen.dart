@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
+
 import '../services/auth_service.dart';
 import '../services/event_service.dart';
 import '../services/registration_service.dart';
+
 import '../utils/date_utils.dart';
+
 import '../widgets/event_card.dart';
 import '../widgets/admin_badge.dart';
+
 import 'event_detail_screen.dart';
 import 'login_screen.dart';
+
+// ================= PROFILE SCREEN =================
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  // ================= EMPTY STATE =================
+
   Widget _emptyRegistrations() {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: 32),
+
       child: Center(
         child: Text(
           'No registrations yet',
@@ -23,75 +32,132 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  // ================= LOGOUT =================
+
+  Future<void> _logout(BuildContext context, AuthService authService) async {
+    try {
+      await authService.logout();
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Logout failed')));
+
+      return;
+    }
+
+    if (!context.mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  // ================= BUILD =================
+
   @override
   Widget build(BuildContext context) {
-    final authService = AuthService(); // ✅ single instance
-    final width = MediaQuery.of(context).size.width;
-    final isWide = width >= 930;
+    // ================= SERVICES =================
+
+    final authService = AuthService();
+
+    // ================= LAYOUT =================
+
+    final size = MediaQuery.of(context).size;
+
+    final bool isWide = size.width >= 930;
 
     return CustomScrollView(
       slivers: [
         // ================= APP BAR =================
-        SliverAppBar(
+        const SliverAppBar(
           pinned: true,
+
           centerTitle: true,
-          title: const Text('Profile'),
-          actions: const [AdminBadge()],
+
+          title: Text('Profile'),
+
+          actions: [AdminBadge()],
         ),
 
-        // ================= PROFILE CONTENT =================
+        // ================= CONTENT =================
         SliverPadding(
           padding: const EdgeInsets.all(16),
+
           sliver: SliverToBoxAdapter(
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1000),
+
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+
                   children: [
                     const SizedBox(height: 8),
 
-                    // ================= PROFILE HEADER =================
-                    Center(
-                      child: Column(
-                        children: [
-                          const CircleAvatar(
-                            radius: 44,
-                            backgroundColor: Colors.deepPurple,
-                            child: Icon(
-                              Icons.person,
-                              size: 44,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
+                    // ================= USER INFO HEADER =================
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ================= PROFILE IMAGE =================
+                        const CircleAvatar(
+                          radius: 44,
 
-                          StreamBuilder<Map<String, dynamic>?>(
+                          backgroundColor: Colors.deepPurple,
+
+                          child: Icon(
+                            Icons.person,
+                            size: 44,
+                            color: Colors.white,
+                          ),
+                        ),
+
+                        const SizedBox(width: 16),
+
+                        // ================= USER DETAILS =================
+                        Expanded(
+                          child: StreamBuilder<Map<String, dynamic>?>(
                             stream: authService.streamUserProfile(),
+
                             builder: (context, snapshot) {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
-                                return const CircularProgressIndicator();
+                                return const Padding(
+                                  padding: EdgeInsets.only(top: 16),
+
+                                  child: CircularProgressIndicator(),
+                                );
                               }
 
                               final data = snapshot.data;
+
                               final email =
                                   authService.currentUser?.email ?? '';
+
                               final role = (data?['role'] ?? 'student')
                                   .toString();
 
                               return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+
                                 children: [
                                   Text(
                                     email,
+
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  const SizedBox(height: 6),
+
+                                  const SizedBox(height: 4),
+
                                   Text(
                                     role[0].toUpperCase() + role.substring(1),
+
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -102,17 +168,31 @@ class ProfileScreen extends StatelessWidget {
                               );
                             },
                           ),
-                        ],
-                      ),
+                        ),
+
+                        // ================= LOGOUT BUTTON =================
+                        IconButton(
+                          tooltip: 'Logout',
+
+                          icon: const Icon(Icons.logout, color: Colors.red),
+
+                          onPressed: () {
+                            _logout(context, authService);
+                          },
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 32),
+
                     const Divider(),
+
                     const SizedBox(height: 24),
 
-                    // ================= MY REGISTRATIONS =================
+                    // ================= REGISTRATIONS =================
                     const Text(
                       'My Registrations',
+
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -123,25 +203,29 @@ class ProfileScreen extends StatelessWidget {
 
                     StreamBuilder<List<String>>(
                       stream: RegistrationService().streamUserRegistrations(),
+
                       builder: (context, regSnapshot) {
                         final registeredIds = regSnapshot.data ?? [];
 
-                        // 🚫 No registrations at all
                         if (registeredIds.isEmpty) {
                           return _emptyRegistrations();
                         }
 
                         return StreamBuilder<List<Map<String, dynamic>>>(
                           stream: EventService().streamEvents(),
+
                           builder: (context, eventSnapshot) {
                             if (!eventSnapshot.hasData) {
                               return const Padding(
                                 padding: EdgeInsets.all(32),
+
                                 child: Center(
                                   child: CircularProgressIndicator(),
                                 ),
                               );
                             }
+
+                            // ================= DATA =================
 
                             final today = todayDate();
 
@@ -158,130 +242,34 @@ class ProfileScreen extends StatelessWidget {
                               return _emptyRegistrations();
                             }
 
-                            final upcomingEvents = <Map<String, dynamic>>[];
-                            final pastEvents = <Map<String, dynamic>>[];
+                            final upcoming = <Map<String, dynamic>>[];
+
+                            final past = <Map<String, dynamic>>[];
 
                             for (final event in registeredEvents) {
                               normalizeDate(event['date']).isBefore(today)
-                                  ? pastEvents.add(event)
-                                  : upcomingEvents.add(event);
+                                  ? past.add(event)
+                                  : upcoming.add(event);
                             }
 
-                            upcomingEvents.sort(
+                            // ================= SORT =================
+
+                            upcoming.sort(
                               (a, b) => a['date'].compareTo(b['date']),
                             );
-                            pastEvents.sort(
-                              (a, b) => b['date'].compareTo(a['date']),
-                            );
 
-                            final orderedEvents = [
-                              ...upcomingEvents,
-                              ...pastEvents,
-                            ];
+                            past.sort((a, b) => b['date'].compareTo(a['date']));
+
+                            final ordered = [...upcoming, ...past];
+
+                            // ================= UI =================
 
                             return isWide
-                                ? GridView.builder(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: orderedEvents.length,
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 2,
-                                          mainAxisSpacing: 16,
-                                          crossAxisSpacing: 16,
-                                          childAspectRatio: 2.8,
-                                        ),
-                                    itemBuilder: (context, index) {
-                                      final event = orderedEvents[index];
-                                      return EventCard(
-                                        event: event,
-                                        isRegistered: true,
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => EventDetailScreen(
-                                                event: event,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  )
-                                : ListView.builder(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: orderedEvents.length,
-                                    itemBuilder: (context, index) {
-                                      final event = orderedEvents[index];
-                                      return Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 16,
-                                        ),
-                                        child: EventCard(
-                                          event: event,
-                                          isRegistered: true,
-                                          onTap: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    EventDetailScreen(
-                                                      event: event,
-                                                    ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      );
-                                    },
-                                  );
+                                ? _buildGrid(context, ordered)
+                                : _buildList(context, ordered);
                           },
                         );
                       },
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // ================= LOGOUT =================
-                    Center(
-                      child: SizedBox(
-                        width: 320,
-                        height: 52,
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            await authService.logout();
-                            if (!context.mounted) return;
-
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const LoginScreen(),
-                              ),
-                              (route) => false,
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: Colors.red.shade100,
-                            foregroundColor: Colors.red.shade800,
-                            side: BorderSide(color: Colors.red.shade300),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                          ),
-                          child: const Text(
-                            'Logout',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ),
-                      ),
                     ),
                   ],
                 ),
@@ -290,6 +278,73 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  // ================= GRID =================
+
+  Widget _buildGrid(BuildContext context, List<Map<String, dynamic>> events) {
+    return GridView.builder(
+      shrinkWrap: true,
+
+      physics: const NeverScrollableScrollPhysics(),
+
+      itemCount: events.length,
+
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+
+        childAspectRatio: 2.8,
+      ),
+
+      itemBuilder: (context, index) {
+        final event = events[index];
+
+        return _buildEventCard(context, event);
+      },
+    );
+  }
+
+  // ================= LIST =================
+
+  Widget _buildList(BuildContext context, List<Map<String, dynamic>> events) {
+    return ListView.builder(
+      shrinkWrap: true,
+
+      physics: const NeverScrollableScrollPhysics(),
+
+      itemCount: events.length,
+
+      itemBuilder: (context, index) {
+        final event = events[index];
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+
+          child: _buildEventCard(context, event),
+        );
+      },
+    );
+  }
+
+  // ================= EVENT CARD =================
+
+  Widget _buildEventCard(BuildContext context, Map<String, dynamic> event) {
+    return EventCard(
+      event: event,
+
+      isRegistered: true,
+
+      onTap: () {
+        Navigator.push(
+          context,
+
+          MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
+        );
+      },
     );
   }
 }
