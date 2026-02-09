@@ -33,6 +33,10 @@ String formatTime(String time) {
 
 /// Formats time range
 /// Example: "09:00", "11:30" → "09:00 AM - 11:30 AM"
-String formatTimeRange(String startTime, String endTime) {
-  return "${formatTime(startTime)} - ${formatTime(endTime)}";
+String formatTimeRange(String? start, String? end) {
+  if (start == null || end == null || start.isEmpty || end.isEmpty) {
+    return 'Time not set';
+  }
+
+  return '$start - $end';
 }

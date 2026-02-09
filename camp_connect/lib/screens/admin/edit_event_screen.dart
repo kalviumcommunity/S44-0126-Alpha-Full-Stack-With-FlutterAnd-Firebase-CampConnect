@@ -143,9 +143,11 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to update event. Please try again.'),
+        ),
+      );
     }
   }
 

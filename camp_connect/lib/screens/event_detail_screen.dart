@@ -16,10 +16,16 @@ class EventDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final eventId = event['id'];
 
-    return StreamBuilder<Map<String, dynamic>>(
+    return StreamBuilder<Map<String, dynamic>?>(
       stream: EventService().streamEvent(eventId),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.hasError) {
+          return const Scaffold(
+            body: Center(child: Text('Failed to load event')),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data == null) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );

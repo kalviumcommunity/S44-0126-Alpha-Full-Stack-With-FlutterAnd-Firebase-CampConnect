@@ -124,9 +124,11 @@ class _AdminCreateEventScreenState extends State<AdminCreateEventScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to create event: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to create event. Please try again.'),
+        ),
+      );
     }
   }
 

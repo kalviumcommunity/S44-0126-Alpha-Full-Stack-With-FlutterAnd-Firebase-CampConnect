@@ -61,26 +61,24 @@ class EventService {
   }
   // ================= STREAM SINGLE EVENT =================
 
-  Stream<Map<String, dynamic>> streamEvent(String eventId) {
+  Stream<Map<String, dynamic>?> streamEvent(String eventId) {
     return _firestore.collection('events').doc(eventId).snapshots().map((doc) {
+      if (!doc.exists || doc.data() == null) {
+        return null;
+      }
+
       final data = doc.data()!;
 
       return {
         'id': doc.id,
-
-        'title': data['title'],
+        'title': data['title'] ?? '',
         'description': data['description'],
-        'location': data['location'],
-
-        'date': (data['date'] as Timestamp).toDate(),
-
-        'startTime': data['startTime'],
-        'endTime': data['endTime'],
-
+        'location': data['location'] ?? '',
+        'date': (data['date'] as Timestamp?)?.toDate(),
+        'startTime': data['startTime'] ?? '',
+        'endTime': data['endTime'] ?? '',
         'status': data['status'] ?? 'active',
-
         'createdBy': data['createdBy'],
-
         'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
         'updatedAt': (data['updatedAt'] as Timestamp?)?.toDate(),
         'cancelledAt': (data['cancelledAt'] as Timestamp?)?.toDate(),
@@ -100,20 +98,14 @@ class EventService {
 
         return {
           'id': doc.id,
-
-          'title': data['title'],
+          'title': data['title'] ?? '',
           'description': data['description'],
-          'location': data['location'],
-
-          'date': (data['date'] as Timestamp).toDate(),
-
-          'startTime': data['startTime'],
-          'endTime': data['endTime'],
-
+          'location': data['location'] ?? '',
+          'date': (data['date'] as Timestamp?)?.toDate(),
+          'startTime': data['startTime'] ?? '',
+          'endTime': data['endTime'] ?? '',
           'status': data['status'] ?? 'active',
-
           'createdBy': data['createdBy'],
-
           'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
           'updatedAt': (data['updatedAt'] as Timestamp?)?.toDate(),
           'cancelledAt': (data['cancelledAt'] as Timestamp?)?.toDate(),
@@ -136,19 +128,16 @@ class EventService {
     await _requireAdmin();
 
     final uid = currentUserId!;
+    _validateTimeRange(startTime, endTime);
 
     await _firestore.collection('events').add({
       'title': title,
       'description': description,
       'location': location,
-
       'date': Timestamp.fromDate(date),
-
       'startTime': startTime,
       'endTime': endTime,
-
       'status': 'active',
-
       'createdBy': uid,
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -168,6 +157,8 @@ class EventService {
     await _requireAdmin();
 
     final uid = currentUserId!;
+    _validateTimeRange(startTime, endTime);
+
     final ref = _firestore.collection('events').doc(eventId);
 
     final data = await _getEvent(eventId);
@@ -196,12 +187,9 @@ class EventService {
       'title': title,
       'description': description,
       'location': location,
-
       'date': Timestamp.fromDate(date),
-
       'startTime': startTime,
       'endTime': endTime,
-
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
@@ -297,14 +285,10 @@ class EventService {
 
             return {
               'id': doc.id,
-
               'userId': data['userId'],
               'eventId': data['eventId'],
-
               'registeredAt': (data['registeredAt'] as Timestamp).toDate(),
-
               'attended': data['attended'] ?? false,
-
               'markedBy': data['markedBy'],
               'markedAt': (data['markedAt'] as Timestamp?)?.toDate(),
             };
@@ -385,11 +369,33 @@ class EventService {
     int attended = 0;
 
     for (final doc in snapshot.docs) {
-      if (doc['attended'] == true) {
+      final bool isAttended = doc.data()['attended'] ?? false;
+
+      if (isAttended) {
         attended++;
       }
     }
 
     return {'registered': registered, 'attended': attended};
+  }
+}
+
+// ================= VALIDATE TIME RANGE =================
+void _validateTimeRange(String start, String end) {
+  final regex = RegExp(r'^\d{2}:\d{2}$'); // HH:mm format
+
+  if (!regex.hasMatch(start) || !regex.hasMatch(end)) {
+    throw Exception('Invalid time format');
+  }
+
+  final startParts = start.split(':');
+  final endParts = end.split(':');
+
+  final startMinutes = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+
+  final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
+
+  if (endMinutes <= startMinutes) {
+    throw Exception('End time must be after start time');
   }
 }

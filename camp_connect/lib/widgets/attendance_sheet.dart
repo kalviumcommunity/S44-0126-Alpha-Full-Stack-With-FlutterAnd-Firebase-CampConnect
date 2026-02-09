@@ -85,6 +85,10 @@ class AttendanceSheet extends StatelessWidget {
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: EventService().streamRegistrationsForEvent(eventId),
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return const Text('Failed to load stats');
+                }
+
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
