@@ -1,6 +1,7 @@
+import 'package:camp_connect/services/event_service.dart';
 import 'package:flutter/material.dart';
 
-import '../utils/date_utils.dart';
+import '../utils/date_time_utils.dart';
 import '../services/registration_service.dart';
 import '../services/auth_service.dart';
 
@@ -13,317 +14,374 @@ class EventDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final eventId = event['id'];
 
-    // ================= DATES =================
+    return StreamBuilder<Map<String, dynamic>>(
+      stream: EventService().streamEvent(eventId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-    final DateTime eventDate = normalizeDate(event['date']);
-    final DateTime today = todayDate();
+        final event = snapshot.data!;
+        final size = MediaQuery.of(context).size;
 
-    final bool isPast = eventDate.isBefore(today);
-    final bool isToday = eventDate.isAtSameMomentAs(today);
+        // ================= DATES =================
 
-    // ================= STATUS =================
+        final DateTime eventDate = normalizeDate(event['date']);
+        final DateTime today = todayDate();
 
-    final bool isCancelled = event['status'] == 'cancelled';
-    final bool isCompletedStatus = event['status'] == 'completed';
+        final bool isPast = eventDate.isBefore(today);
+        final bool isToday = eventDate.isAtSameMomentAs(today);
 
-    // Completed timestamp
-    final DateTime? completedAt = event['completedAt'];
+        // ================= STATUS =================
 
-    // Normalize completed date
-    final DateTime? completedDate = completedAt != null
-        ? normalizeDate(completedAt)
-        : null;
+        final bool isCancelled = event['status'] == 'cancelled';
+        final bool isCompletedStatus = event['status'] == 'completed';
 
-    // Completed AND old
-    final bool isCompletedAndPast =
-        isCompletedStatus &&
-        completedDate != null &&
-        completedDate.isBefore(today);
+        // Active but past → treat as ended
+        final bool isEnded = event['status'] == 'active' && isPast;
 
-    // Recently completed
-    final bool isCompleted = isCompletedStatus && !isCompletedAndPast;
+        // Completed timestamp
+        final DateTime? completedAt = event['completedAt'];
 
-    final bool shouldDim = isPast || isCancelled;
+        // Normalize completed date
+        final DateTime? completedDate = completedAt != null
+            ? normalizeDate(completedAt)
+            : null;
 
-    final String eventId = event['id'];
+        // Completed AND old
+        final bool isCompletedAndPast =
+            isCompletedStatus &&
+            completedDate != null &&
+            completedDate.isBefore(today);
 
-    // ================= CURRENT USER =================
+        // Recently completed
+        final bool isCompleted = isCompletedStatus && !isCompletedAndPast;
 
-    final currentUserId = AuthService().currentUser?.uid;
+        final bool shouldDim = isPast || isCancelled;
 
-    final bool isOwnerAdmin =
-        currentUserId != null && event['createdBy'] == currentUserId;
+        final String eventId = event['id'];
 
-    // ================= STATUS UI =================
+        // ================= CURRENT USER =================
 
-    late String statusText;
-    late Color badgeColor;
-    late Color textColor;
+        final currentUserId = AuthService().currentUser?.uid;
 
-    // Priority: Cancelled → Past → Completed → Today → Upcoming
+        final bool isOwnerAdmin =
+            currentUserId != null && event['createdBy'] == currentUserId;
 
-    if (isCancelled) {
-      statusText = 'Cancelled';
-      badgeColor = Colors.red.shade100;
-      textColor = Colors.red.shade800;
-    }
-    // Past OR old completed → grey
-    else if (isPast || isCompletedAndPast) {
-      statusText = 'Event Ended';
-      badgeColor = Colors.grey.shade300;
-      textColor = Colors.grey.shade700;
-    }
-    // Recent completed → purple
-    else if (isCompleted) {
-      statusText = 'Completed';
-      badgeColor = Colors.deepPurple.shade100;
-      textColor = Colors.deepPurple.shade800;
-    } else if (isToday) {
-      statusText = 'Event Today';
-      badgeColor = Colors.orange.shade100;
-      textColor = Colors.orange.shade800;
-    } else {
-      statusText = 'Upcoming Event';
-      badgeColor = Colors.green.shade100;
-      textColor = Colors.green.shade800;
-    }
+        // ================= STATUS UI =================
 
-    return Scaffold(
-      backgroundColor: Colors.white,
+        late String statusText;
+        late Color badgeColor;
+        late Color textColor;
 
-      // ================= APP BAR =================
-      appBar: AppBar(
-        title: const Text('Event Details'),
-        elevation: shouldDim ? 0 : 1,
+        // Priority: Cancelled → Past → Completed → Today → Upcoming
 
-        backgroundColor: shouldDim ? Colors.grey.shade200 : null,
+        if (isCancelled) {
+          statusText = 'Cancelled';
+          badgeColor = Colors.red.shade100;
+          textColor = Colors.red.shade800;
+        }
+        // Past OR old completed → grey
+        else if (isEnded || isCompletedAndPast) {
+          statusText = 'Event Ended';
+          badgeColor = Colors.grey.shade300;
+          textColor = Colors.grey.shade700;
+        }
+        // Recent completed → purple
+        else if (isCompleted) {
+          statusText = 'Completed';
+          badgeColor = Colors.deepPurple.shade100;
+          textColor = Colors.deepPurple.shade800;
+        } else if (isToday) {
+          statusText = 'Event Today';
+          badgeColor = Colors.orange.shade100;
+          textColor = Colors.orange.shade800;
+        } else {
+          statusText = 'Upcoming Event';
+          badgeColor = Colors.green.shade100;
+          textColor = Colors.green.shade800;
+        }
 
-        foregroundColor: shouldDim ? Colors.black87 : null,
-      ),
+        return Scaffold(
+          backgroundColor: Colors.white,
 
-      // ================= BODY =================
-      body: Opacity(
-        opacity: shouldDim ? 0.6 : 1,
+          // ================= APP BAR =================
+          appBar: AppBar(
+            title: const Text('Event Details'),
+            elevation: shouldDim ? 0 : 1,
 
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
+            backgroundColor: shouldDim ? Colors.grey.shade200 : null,
 
-            child: Column(
-              children: [
-                // ================= CONTENT =================
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
+            foregroundColor: shouldDim ? Colors.black87 : null,
+          ),
 
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          // ================= BODY =================
+          body: Opacity(
+            opacity: shouldDim ? 0.6 : 1,
 
-                      children: [
-                        // TITLE
-                        Text(
-                          event['title'],
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
 
-                        const SizedBox(height: 16),
+                child: Column(
+                  children: [
+                    // ================= CONTENT =================
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
 
-                        // DATE
-                        Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+
                           children: [
-                            const Icon(Icons.calendar_today, size: 16),
-
-                            const SizedBox(width: 8),
-
-                            Text(formatDate(event['date'])),
-
-                            const Spacer(),
-
-                            // META
+                            // TITLE + META
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Icon(
-                                  isCancelled
-                                      ? Icons.cancel_outlined
-                                      : isCompletedStatus
-                                      ? Icons.check_circle_outline
-                                      : event['updatedAt'] != null
-                                      ? Icons.edit_outlined
-                                      : Icons.schedule_outlined,
-
-                                  size: 14,
-                                  color: Colors.grey,
+                                // TITLE
+                                Expanded(
+                                  child: Text(
+                                    event['title'],
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
 
-                                const SizedBox(width: 4),
+                                const SizedBox(width: 8),
 
-                                Text(
-                                  isCancelled
-                                      ? 'Cancelled on ${formatDate(event['cancelledAt'])}'
-                                      : isCompletedStatus &&
-                                            event['completedAt'] != null
-                                      ? 'Completed on ${formatDate(event['completedAt'])}'
-                                      : event['updatedAt'] != null
-                                      ? 'Updated on ${formatDate(event['updatedAt'])}'
-                                      : 'Created on ${formatDate(event['createdAt'])}',
+                                // META
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isCancelled
+                                          ? Icons.cancel_outlined
+                                          : isCompletedStatus
+                                          ? Icons.check_circle_outline
+                                          : event['updatedAt'] != null
+                                          ? Icons.edit_outlined
+                                          : Icons.schedule_outlined,
+                                      size: 14,
+                                      color: Colors.grey,
+                                    ),
 
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                    fontStyle: FontStyle.italic,
-                                  ),
+                                    const SizedBox(width: 4),
+
+                                    Flexible(
+                                      child: Text(
+                                        isCancelled
+                                            ? 'Cancelled on ${formatDate(event['cancelledAt'])}'
+                                            : isCompletedStatus &&
+                                                  event['completedAt'] != null
+                                            ? 'Completed on ${formatDate(event['completedAt'])}'
+                                            : event['updatedAt'] != null
+                                            ? 'Updated on ${formatDate(event['updatedAt'])}'
+                                            : 'Created on ${formatDate(event['createdAt'])}',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
 
-                        const SizedBox(height: 8),
+                            const SizedBox(height: 16),
 
-                        // LOCATION
-                        Row(
-                          children: [
-                            const Icon(Icons.location_on, size: 16),
+                            // DATE & TIME
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // DATE
+                                Row(
+                                  children: [
+                                    const Icon(Icons.calendar_today, size: 16),
 
-                            const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
 
-                            Expanded(child: Text(event['location'])),
-                          ],
-                        ),
+                                    Text(formatDate(event['date'])),
+                                  ],
+                                ),
 
-                        const SizedBox(height: 16),
+                                // TIME
+                                Row(
+                                  children: [
+                                    const Icon(Icons.access_time, size: 16),
 
-                        // STATUS BADGE
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
-                          ),
+                                    const SizedBox(width: 6),
 
-                          decoration: BoxDecoration(
-                            color: badgeColor,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-
-                          child: Text(
-                            statusText,
-
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: textColor,
+                                    Text(
+                                      formatTimeRange(
+                                        event['startTime'],
+                                        event['endTime'],
+                                      ),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ),
-                        ),
 
-                        const SizedBox(height: 20),
-                        const Divider(),
-                        const SizedBox(height: 12),
+                            const SizedBox(height: 8),
 
-                        // DESCRIPTION
-                        Text(
-                          event['description'] ?? 'No description available',
+                            // LOCATION
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on, size: 16),
 
-                          style: const TextStyle(fontSize: 16, height: 1.5),
-                        ),
+                                const SizedBox(width: 8),
 
-                        const SizedBox(height: 30),
-                      ],
-                    ),
-                  ),
-                ),
+                                Expanded(child: Text(event['location'])),
+                              ],
+                            ),
 
-                // ================= BOTTOM =================
-                if (!isCancelled)
-                  // ADMIN
-                  if (isOwnerAdmin)
-                    AttendanceSheet(
-                      eventId: eventId,
+                            const SizedBox(height: 16),
 
-                      // lock after completed OR past
-                      isCompleted: isCompleted || isCompletedAndPast || isPast,
-                    )
-                  // USER
-                  else if (!isPast && !isCompleted)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                            // STATUS BADGE
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 6,
+                              ),
 
-                      child: SizedBox(
-                        width: size.width > 720 ? 400 : double.infinity,
-
-                        height: 52,
-
-                        child: StreamBuilder<List<String>>(
-                          stream: RegistrationService()
-                              .streamUserRegistrations(),
-
-                          builder: (context, snapshot) {
-                            final isRegistered =
-                                snapshot.hasData &&
-                                snapshot.data!.contains(eventId);
-
-                            return OutlinedButton(
-                              onPressed: isRegistered
-                                  ? null
-                                  : () async {
-                                      await RegistrationService()
-                                          .registerForEvent(eventId);
-
-                                      if (!context.mounted) return;
-
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Registered successfully',
-                                          ),
-                                        ),
-                                      );
-                                    },
-
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: isRegistered
-                                    ? Colors.grey.shade200
-                                    : badgeColor,
-
-                                foregroundColor: isRegistered
-                                    ? Colors.grey
-                                    : textColor,
-
-                                side: BorderSide(
-                                  color: textColor.withAlpha(
-                                    (0.4 * 255).toInt(),
-                                  ),
-                                ),
-
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
+                              decoration: BoxDecoration(
+                                color: badgeColor,
+                                borderRadius: BorderRadius.circular(20),
                               ),
 
                               child: Text(
-                                isRegistered ? 'Registered' : 'Register',
+                                statusText,
 
-                                style: const TextStyle(
-                                  fontSize: 16,
+                                style: TextStyle(
                                   fontWeight: FontWeight.w600,
+                                  color: textColor,
                                 ),
                               ),
-                            );
-                          },
+                            ),
+
+                            const SizedBox(height: 20),
+                            const Divider(),
+                            const SizedBox(height: 12),
+
+                            // DESCRIPTION
+                            Text(
+                              event['description'] ??
+                                  'No description available',
+
+                              style: const TextStyle(fontSize: 16, height: 1.5),
+                            ),
+
+                            const SizedBox(height: 30),
+                          ],
                         ),
                       ),
                     ),
-              ],
+
+                    // ================= BOTTOM =================
+                    if (!isCancelled)
+                      // ADMIN
+                      if (isOwnerAdmin)
+                        AttendanceSheet(
+                          eventId: eventId,
+
+                          isCompleted: isCompletedStatus,
+
+                          isEnded: isEnded,
+                        )
+                      // USER
+                      else if (!isPast && !isCompleted)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+
+                          child: SizedBox(
+                            width: size.width > 720 ? 400 : double.infinity,
+
+                            height: 52,
+
+                            child: StreamBuilder<List<String>>(
+                              stream: RegistrationService()
+                                  .streamUserRegistrations(),
+
+                              builder: (context, snapshot) {
+                                final isRegistered =
+                                    snapshot.hasData &&
+                                    snapshot.data!.contains(eventId);
+
+                                return OutlinedButton(
+                                  onPressed: isRegistered
+                                      ? null
+                                      : () async {
+                                          await RegistrationService()
+                                              .registerForEvent(eventId);
+
+                                          if (!context.mounted) return;
+
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Registered successfully',
+                                              ),
+                                            ),
+                                          );
+                                        },
+
+                                  style: OutlinedButton.styleFrom(
+                                    backgroundColor: isRegistered
+                                        ? Colors.grey.shade200
+                                        : badgeColor,
+
+                                    foregroundColor: isRegistered
+                                        ? Colors.grey
+                                        : textColor,
+
+                                    side: BorderSide(
+                                      color: textColor.withAlpha(
+                                        (0.4 * 255).toInt(),
+                                      ),
+                                    ),
+
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                  ),
+
+                                  child: Text(
+                                    isRegistered ? 'Registered' : 'Register',
+
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

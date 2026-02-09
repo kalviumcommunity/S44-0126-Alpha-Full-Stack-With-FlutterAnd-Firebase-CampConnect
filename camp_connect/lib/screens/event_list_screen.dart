@@ -9,7 +9,7 @@ import '../widgets/admin_badge.dart';
 import '../widgets/admin_add_event_button.dart';
 import '../widgets/cancel_event_dialog.dart';
 
-import '../utils/date_utils.dart';
+import '../utils/date_time_utils.dart';
 
 import 'admin/create_event_screen.dart';
 import 'admin/edit_event_screen.dart';
@@ -85,7 +85,6 @@ class EventListScreen extends StatelessWidget {
         onTap: () {
           Navigator.push(
             context,
-
             MaterialPageRoute(builder: (_) => const AdminCreateEventScreen()),
           );
         },

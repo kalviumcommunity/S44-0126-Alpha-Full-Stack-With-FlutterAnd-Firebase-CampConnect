@@ -4,7 +4,7 @@ import '../services/auth_service.dart';
 import '../services/event_service.dart';
 import '../services/registration_service.dart';
 
-import '../utils/date_utils.dart';
+import '../utils/date_time_utils.dart';
 
 import '../widgets/event_card.dart';
 import '../widgets/admin_badge.dart';

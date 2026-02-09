@@ -59,6 +59,35 @@ class EventService {
 
     return snap.data()!;
   }
+  // ================= STREAM SINGLE EVENT =================
+
+  Stream<Map<String, dynamic>> streamEvent(String eventId) {
+    return _firestore.collection('events').doc(eventId).snapshots().map((doc) {
+      final data = doc.data()!;
+
+      return {
+        'id': doc.id,
+
+        'title': data['title'],
+        'description': data['description'],
+        'location': data['location'],
+
+        'date': (data['date'] as Timestamp).toDate(),
+
+        'startTime': data['startTime'],
+        'endTime': data['endTime'],
+
+        'status': data['status'] ?? 'active',
+
+        'createdBy': data['createdBy'],
+
+        'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
+        'updatedAt': (data['updatedAt'] as Timestamp?)?.toDate(),
+        'cancelledAt': (data['cancelledAt'] as Timestamp?)?.toDate(),
+        'completedAt': (data['completedAt'] as Timestamp?)?.toDate(),
+      };
+    });
+  }
 
   // ================= STREAM EVENTS =================
 
@@ -78,16 +107,16 @@ class EventService {
 
           'date': (data['date'] as Timestamp).toDate(),
 
+          'startTime': data['startTime'],
+          'endTime': data['endTime'],
+
           'status': data['status'] ?? 'active',
 
           'createdBy': data['createdBy'],
 
           'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
-
           'updatedAt': (data['updatedAt'] as Timestamp?)?.toDate(),
-
           'cancelledAt': (data['cancelledAt'] as Timestamp?)?.toDate(),
-
           'completedAt': (data['completedAt'] as Timestamp?)?.toDate(),
         };
       }).toList();
@@ -101,6 +130,8 @@ class EventService {
     required String description,
     required String location,
     required DateTime date,
+    required String startTime,
+    required String endTime,
   }) async {
     await _requireAdmin();
 
@@ -113,10 +144,12 @@ class EventService {
 
       'date': Timestamp.fromDate(date),
 
+      'startTime': startTime,
+      'endTime': endTime,
+
       'status': 'active',
 
       'createdBy': uid,
-
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -129,11 +162,12 @@ class EventService {
     required String description,
     required String location,
     required DateTime date,
+    required String startTime,
+    required String endTime,
   }) async {
     await _requireAdmin();
 
     final uid = currentUserId!;
-
     final ref = _firestore.collection('events').doc(eventId);
 
     final data = await _getEvent(eventId);
@@ -164,6 +198,9 @@ class EventService {
       'location': location,
 
       'date': Timestamp.fromDate(date),
+
+      'startTime': startTime,
+      'endTime': endTime,
 
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -269,7 +306,6 @@ class EventService {
               'attended': data['attended'] ?? false,
 
               'markedBy': data['markedBy'],
-
               'markedAt': (data['markedAt'] as Timestamp?)?.toDate(),
             };
           }).toList();

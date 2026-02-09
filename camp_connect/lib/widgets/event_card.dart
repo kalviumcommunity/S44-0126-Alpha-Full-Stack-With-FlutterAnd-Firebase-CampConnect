@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../utils/date_utils.dart';
+import '../utils/date_time_utils.dart';
 
 class EventCard extends StatelessWidget {
   final Map<String, dynamic> event;
@@ -136,14 +136,28 @@ class EventCard extends StatelessWidget {
 
                     const SizedBox(height: 10),
 
-                    // ================= DATE =================
+                    // ================= DATE & TIME =================
                     Row(
                       children: [
                         const Icon(Icons.calendar_today, size: 16),
 
                         const SizedBox(width: 8),
 
-                        Text(formatDate(event['date'])),
+                        Text(
+                          formatDate(event['date']),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+
+                        const SizedBox(width: 32),
+
+                        const Icon(Icons.access_time, size: 16),
+
+                        const SizedBox(width: 8),
+
+                        Text(
+                          formatTimeRange(event['startTime'], event['endTime']),
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       ],
                     ),
 
