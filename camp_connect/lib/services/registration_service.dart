@@ -52,9 +52,8 @@ class RegistrationService {
 
     await _firestore.collection('registrations').add({
       'eventId': eventId,
-
       'userId': uid,
-
+      'attended': false,
       'registeredAt': Timestamp.now(),
     });
   }

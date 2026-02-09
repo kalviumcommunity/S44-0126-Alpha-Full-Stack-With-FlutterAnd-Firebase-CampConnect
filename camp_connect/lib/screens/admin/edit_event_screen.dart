@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/event_service.dart';
 import '../../services/auth_service.dart';
-import '../../utils/date_utils.dart';
+import '../../utils/date_time_utils.dart';
 
 class AdminEditEventScreen extends StatefulWidget {
   final Map<String, dynamic> event;
@@ -21,6 +21,8 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
   late final TextEditingController titleCtrl;
   late final TextEditingController descCtrl;
   late final TextEditingController locationCtrl;
+  late final TextEditingController startTimeCtrl;
+  late final TextEditingController endTimeCtrl;
 
   // ================= STATE =================
 
@@ -34,12 +36,11 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
     super.initState();
 
     titleCtrl = TextEditingController(text: widget.event['title']);
-
     descCtrl = TextEditingController(text: widget.event['description']);
-
     locationCtrl = TextEditingController(text: widget.event['location']);
-
     selectedDate = widget.event['date'];
+    startTimeCtrl = TextEditingController(text: widget.event['startTime']);
+    endTimeCtrl = TextEditingController(text: widget.event['endTime']);
   }
 
   @override
@@ -78,6 +79,22 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
     );
   }
 
+  // ================= TIME PICKER =================
+
+  Future<void> _pickTime(TextEditingController controller) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (picked != null) {
+      final formatted =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+
+      controller.text = formatted;
+    }
+  }
+
   // ================= DATE PICKER =================
 
   Future<void> _pickDate(FormFieldState<DateTime> field) async {
@@ -112,6 +129,8 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
         description: descCtrl.text.trim(),
         location: locationCtrl.text.trim(),
         date: selectedDate!,
+        startTime: startTimeCtrl.text.trim(),
+        endTime: endTimeCtrl.text.trim(),
       );
 
       if (!mounted) return;
@@ -124,9 +143,11 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to update event. Please try again.'),
+        ),
+      );
     }
   }
 
@@ -251,6 +272,44 @@ class _AdminEditEventScreenState extends State<AdminEditEventScreen> {
 
                             validator: (v) => v == null || v.trim().isEmpty
                                 ? 'Location required'
+                                : null,
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // ================= START TIME =================
+                          TextFormField(
+                            controller: startTimeCtrl,
+                            readOnly: true,
+
+                            decoration: _inputDecoration(
+                              label: 'Start Time',
+                              icon: Icons.access_time,
+                            ),
+
+                            onTap: () => _pickTime(startTimeCtrl),
+
+                            validator: (v) => v == null || v.trim().isEmpty
+                                ? 'Start time required'
+                                : null,
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // ================= END TIME =================
+                          TextFormField(
+                            controller: endTimeCtrl,
+                            readOnly: true,
+
+                            decoration: _inputDecoration(
+                              label: 'End Time',
+                              icon: Icons.access_time_filled,
+                            ),
+
+                            onTap: () => _pickTime(endTimeCtrl),
+
+                            validator: (v) => v == null || v.trim().isEmpty
+                                ? 'End time required'
                                 : null,
                           ),
 

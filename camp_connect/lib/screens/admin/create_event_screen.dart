@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/event_service.dart';
 import '../../services/auth_service.dart';
-import '../../utils/date_utils.dart';
+import '../../utils/date_time_utils.dart';
 
 class AdminCreateEventScreen extends StatefulWidget {
   const AdminCreateEventScreen({super.key});
@@ -19,6 +19,8 @@ class _AdminCreateEventScreenState extends State<AdminCreateEventScreen> {
   final titleCtrl = TextEditingController();
   final descCtrl = TextEditingController();
   final locationCtrl = TextEditingController();
+  final startTimeCtrl = TextEditingController();
+  final endTimeCtrl = TextEditingController();
 
   // ================= STATE =================
 
@@ -32,6 +34,8 @@ class _AdminCreateEventScreenState extends State<AdminCreateEventScreen> {
     titleCtrl.dispose();
     descCtrl.dispose();
     locationCtrl.dispose();
+    startTimeCtrl.dispose();
+    endTimeCtrl.dispose();
 
     super.dispose();
   }
@@ -61,6 +65,21 @@ class _AdminCreateEventScreenState extends State<AdminCreateEventScreen> {
         borderSide: const BorderSide(color: Colors.deepPurple, width: 1.6),
       ),
     );
+  }
+
+  // ================= TIME PICKER =================
+  Future<void> _pickTime(TextEditingController controller) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (picked != null) {
+      final formatted =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+
+      controller.text = formatted;
+    }
   }
 
   // ================= DATE PICKER =================
@@ -95,6 +114,8 @@ class _AdminCreateEventScreenState extends State<AdminCreateEventScreen> {
         description: descCtrl.text.trim(),
         location: locationCtrl.text.trim(),
         date: selectedDate!,
+        startTime: startTimeCtrl.text.trim(),
+        endTime: endTimeCtrl.text.trim(),
       );
 
       if (!mounted) return;
@@ -103,9 +124,11 @@ class _AdminCreateEventScreenState extends State<AdminCreateEventScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to create event: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to create event. Please try again.'),
+        ),
+      );
     }
   }
 
@@ -217,6 +240,44 @@ class _AdminCreateEventScreenState extends State<AdminCreateEventScreen> {
 
                             validator: (v) => v == null || v.trim().isEmpty
                                 ? 'Location required'
+                                : null,
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // ================= START TIME =================
+                          TextFormField(
+                            controller: startTimeCtrl,
+                            readOnly: true,
+
+                            decoration: _inputDecoration(
+                              label: 'Start Time',
+                              icon: Icons.access_time,
+                            ),
+
+                            onTap: () => _pickTime(startTimeCtrl),
+
+                            validator: (v) => v == null || v.trim().isEmpty
+                                ? 'Start time required'
+                                : null,
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // ================= END TIME =================
+                          TextFormField(
+                            controller: endTimeCtrl,
+                            readOnly: true,
+
+                            decoration: _inputDecoration(
+                              label: 'End Time',
+                              icon: Icons.access_time_filled,
+                            ),
+
+                            onTap: () => _pickTime(endTimeCtrl),
+
+                            validator: (v) => v == null || v.trim().isEmpty
+                                ? 'End time required'
                                 : null,
                           ),
 

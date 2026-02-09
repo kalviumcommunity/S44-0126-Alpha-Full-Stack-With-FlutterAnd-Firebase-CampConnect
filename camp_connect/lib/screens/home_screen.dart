@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/event_service.dart';
 import '../services/registration_service.dart';
 
-import '../utils/date_utils.dart';
+import '../utils/date_time_utils.dart';
 
 import '../widgets/event_card.dart';
 import '../widgets/app_bottom_nav.dart';
@@ -66,8 +66,6 @@ class HomeTab extends StatelessWidget {
 
     final DateTime today = todayDate();
 
-    final DateTime endDate = today.add(const Duration(days: 2));
-
     // ================= LAYOUT =================
 
     final size = MediaQuery.of(context).size;
@@ -96,15 +94,14 @@ class HomeTab extends StatelessWidget {
 
             final events = snapshot.data!;
 
-            final upcomingEvents = events.where((event) {
-              final date = normalizeDate(event['date']);
-
-              return !date.isBefore(today) && !date.isAfter(endDate);
+            final todayEvents = events.where((e) {
+              final eventDate = normalizeDate(e['date']);
+              return eventDate.isAtSameMomentAs(today);
             }).toList();
 
             // ================= SORT =================
 
-            upcomingEvents.sort((a, b) => a['date'].compareTo(b['date']));
+            todayEvents.sort((a, b) => a['date'].compareTo(b['date']));
 
             // ================= UI =================
 
@@ -131,12 +128,8 @@ class HomeTab extends StatelessWidget {
                         constraints: const BoxConstraints(maxWidth: 1000),
 
                         child: isWide
-                            ? _buildGrid(context, upcomingEvents, registeredIds)
-                            : _buildList(
-                                context,
-                                upcomingEvents,
-                                registeredIds,
-                              ),
+                            ? _buildGrid(context, todayEvents, registeredIds)
+                            : _buildList(context, todayEvents, registeredIds),
                       ),
                     ),
                   ),
