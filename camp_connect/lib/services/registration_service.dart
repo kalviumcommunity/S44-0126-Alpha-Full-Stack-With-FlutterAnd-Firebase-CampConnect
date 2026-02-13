@@ -15,12 +15,36 @@ class RegistrationService {
   // ================= FIREBASE =================
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // ================= GETTERS =================
 
   String? get currentUserId => _auth.currentUser?.uid;
+
+  // ================= AUTH GUARD =================
+
+  String _requireUser() {
+    final uid = currentUserId;
+
+    if (uid == null) {
+      throw Exception('User not authenticated');
+    }
+
+    return uid;
+  }
+
+  // ================= BASE QUERY =================
+
+  Query<Map<String, dynamic>> _userEventQuery({
+    required String eventId,
+    required String userId,
+  }) {
+    return _firestore
+        .collection('registrations')
+        .where('eventId', isEqualTo: eventId)
+        .where('userId', isEqualTo: userId)
+        .limit(1);
+  }
 
   // ================= CHECK REGISTRATION =================
 
@@ -29,32 +53,37 @@ class RegistrationService {
 
     if (uid == null) return false;
 
-    final query = await _firestore
-        .collection('registrations')
-        .where('eventId', isEqualTo: eventId)
-        .where('userId', isEqualTo: uid)
-        .limit(1)
-        .get();
+    final snapshot = await _userEventQuery(eventId: eventId, userId: uid).get();
 
-    return query.docs.isNotEmpty;
+    return snapshot.docs.isNotEmpty;
   }
 
-  // ================= REGISTER =================
+  // ================= REGISTER (SAFE) =================
 
   Future<void> registerForEvent(String eventId) async {
-    final uid = currentUserId;
+    final uid = _requireUser();
 
-    if (uid == null) return;
+    final registrationsRef = _firestore.collection('registrations');
 
-    final alreadyRegistered = await isRegistered(eventId);
+    await _firestore.runTransaction((transaction) async {
+      final querySnapshot = await registrationsRef
+          .where('eventId', isEqualTo: eventId)
+          .where('userId', isEqualTo: uid)
+          .limit(1)
+          .get();
 
-    if (alreadyRegistered) return;
+      if (querySnapshot.docs.isNotEmpty) {
+        throw Exception('Already registered');
+      }
 
-    await _firestore.collection('registrations').add({
-      'eventId': eventId,
-      'userId': uid,
-      'attended': false,
-      'registeredAt': Timestamp.now(),
+      final newDoc = registrationsRef.doc();
+
+      transaction.set(newDoc, {
+        'eventId': eventId,
+        'userId': uid,
+        'attended': false,
+        'registeredAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 
