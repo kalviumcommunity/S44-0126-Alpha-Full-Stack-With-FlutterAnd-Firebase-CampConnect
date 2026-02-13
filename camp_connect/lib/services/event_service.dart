@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../utils/event_mapper.dart';
+import '../utils/event_time_helper.dart';
+
 // ================= EVENT SERVICE =================
 
 class EventService {
@@ -15,33 +18,26 @@ class EventService {
   // ================= FIREBASE =================
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // ================= GETTERS =================
 
   String? get currentUserId => _auth.currentUser?.uid;
 
-  // ================= HELPERS =================
+  // ================= AUTH GUARDS =================
 
-  DateTime _normalizeDate(DateTime d) {
-    return DateTime(d.year, d.month, d.day);
-  }
-
-  DateTime _todayDate() {
-    final now = DateTime.now();
-
-    return DateTime(now.year, now.month, now.day);
-  }
-
-  // ================= AUTH CHECK =================
-
-  Future<void> _requireAdmin() async {
+  String _requireUser() {
     final uid = currentUserId;
 
     if (uid == null) {
-      throw Exception('Not authenticated');
+      throw Exception('User not authenticated');
     }
+
+    return uid;
+  }
+
+  Future<void> _requireAdmin() async {
+    final uid = _requireUser();
 
     final doc = await _firestore.collection('users').doc(uid).get();
 
@@ -50,72 +46,61 @@ class EventService {
     }
   }
 
+  // ================= GET EVENT =================
+
   Future<Map<String, dynamic>> _getEvent(String eventId) async {
     final snap = await _firestore.collection('events').doc(eventId).get();
 
-    if (!snap.exists) {
+    if (!snap.exists || snap.data() == null) {
       throw Exception('Event not found');
     }
 
     return snap.data()!;
   }
-  // ================= STREAM SINGLE EVENT =================
+
+  // ================= STREAM SINGLE =================
 
   Stream<Map<String, dynamic>?> streamEvent(String eventId) {
     return _firestore.collection('events').doc(eventId).snapshots().map((doc) {
-      if (!doc.exists || doc.data() == null) {
-        return null;
-      }
+      if (!doc.exists || doc.data() == null) return null;
 
-      final data = doc.data()!;
-
-      return {
-        'id': doc.id,
-        'title': data['title'] ?? '',
-        'description': data['description'],
-        'location': data['location'] ?? '',
-        'date': (data['date'] as Timestamp?)?.toDate(),
-        'startTime': data['startTime'] ?? '',
-        'endTime': data['endTime'] ?? '',
-        'status': data['status'] ?? 'active',
-        'createdBy': data['createdBy'],
-        'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
-        'updatedAt': (data['updatedAt'] as Timestamp?)?.toDate(),
-        'cancelledAt': (data['cancelledAt'] as Timestamp?)?.toDate(),
-        'completedAt': (data['completedAt'] as Timestamp?)?.toDate(),
-      };
+      return EventMapper.fromEventDoc(doc);
     });
   }
 
-  // ================= STREAM EVENTS =================
+  // ================= STREAM ALL =================
 
   Stream<List<Map<String, dynamic>>> streamEvents() {
     return _firestore.collection('events').orderBy('date').snapshots().map((
       snapshot,
     ) {
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-
-        return {
-          'id': doc.id,
-          'title': data['title'] ?? '',
-          'description': data['description'],
-          'location': data['location'] ?? '',
-          'date': (data['date'] as Timestamp?)?.toDate(),
-          'startTime': data['startTime'] ?? '',
-          'endTime': data['endTime'] ?? '',
-          'status': data['status'] ?? 'active',
-          'createdBy': data['createdBy'],
-          'createdAt': (data['createdAt'] as Timestamp?)?.toDate(),
-          'updatedAt': (data['updatedAt'] as Timestamp?)?.toDate(),
-          'cancelledAt': (data['cancelledAt'] as Timestamp?)?.toDate(),
-          'completedAt': (data['completedAt'] as Timestamp?)?.toDate(),
-        };
-      }).toList();
+      return snapshot.docs.map(EventMapper.fromEventDoc).toList();
     });
   }
 
-  // ================= CREATE EVENT =================
+  // ================= PREPARE DATA =================
+
+  Map<String, dynamic> _prepareEventData({
+    required String title,
+    required String description,
+    required String location,
+    required DateTime date,
+    required String startTime,
+    required String endTime,
+  }) {
+    _validateTimeRange(startTime, endTime);
+
+    return {
+      'title': title,
+      'description': description,
+      'location': location,
+      'date': Timestamp.fromDate(date),
+      'startTime': startTime,
+      'endTime': endTime,
+    };
+  }
+
+  // ================= CREATE =================
 
   Future<void> createEvent({
     required String title,
@@ -127,23 +112,26 @@ class EventService {
   }) async {
     await _requireAdmin();
 
-    final uid = currentUserId!;
-    _validateTimeRange(startTime, endTime);
+    final uid = _requireUser();
+
+    final data = _prepareEventData(
+      title: title,
+      description: description,
+      location: location,
+      date: date,
+      startTime: startTime,
+      endTime: endTime,
+    );
 
     await _firestore.collection('events').add({
-      'title': title,
-      'description': description,
-      'location': location,
-      'date': Timestamp.fromDate(date),
-      'startTime': startTime,
-      'endTime': endTime,
+      ...data,
       'status': 'active',
       'createdBy': uid,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // ================= UPDATE EVENT =================
+  // ================= UPDATE =================
 
   Future<void> updateEvent({
     required String eventId,
@@ -156,60 +144,53 @@ class EventService {
   }) async {
     await _requireAdmin();
 
-    final uid = currentUserId!;
-    _validateTimeRange(startTime, endTime);
+    final uid = _requireUser();
 
     final ref = _firestore.collection('events').doc(eventId);
 
     final data = await _getEvent(eventId);
 
-    final eventDate = _normalizeDate((data['date'] as Timestamp).toDate());
+    // Time rule
+    if (EventTimeHelper.isEventClosed(data)) {
+      throw Exception('Past events cannot be edited');
+    }
 
-    final today = _todayDate();
-
-    // ================= VALIDATION =================
-
+    // Ownership
     if (data['createdBy'] != uid) {
       throw Exception('Only creator can edit event');
     }
 
+    // Status rule
     if (data['status'] == 'cancelled' || data['status'] == 'completed') {
       throw Exception('Closed events cannot be edited');
     }
 
-    if (eventDate.isBefore(today)) {
-      throw Exception('Past events cannot be edited');
-    }
+    final newData = _prepareEventData(
+      title: title,
+      description: description,
+      location: location,
+      date: date,
+      startTime: startTime,
+      endTime: endTime,
+    );
 
-    // ================= UPDATE =================
-
-    await ref.update({
-      'title': title,
-      'description': description,
-      'location': location,
-      'date': Timestamp.fromDate(date),
-      'startTime': startTime,
-      'endTime': endTime,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    await ref.update({...newData, 'updatedAt': FieldValue.serverTimestamp()});
   }
 
-  // ================= CANCEL EVENT =================
+  // ================= CANCEL =================
 
   Future<void> cancelEvent(String eventId) async {
     await _requireAdmin();
 
-    final uid = currentUserId!;
+    final uid = _requireUser();
 
     final ref = _firestore.collection('events').doc(eventId);
 
     final data = await _getEvent(eventId);
 
-    final eventDate = _normalizeDate((data['date'] as Timestamp).toDate());
-
-    final today = _todayDate();
-
-    // ================= VALIDATION =================
+    if (EventTimeHelper.isEventClosed(data)) {
+      throw Exception('Past events cannot be cancelled');
+    }
 
     if (data['createdBy'] != uid) {
       throw Exception('Only creator can cancel event');
@@ -223,31 +204,26 @@ class EventService {
       throw Exception('Completed event cannot be cancelled');
     }
 
-    if (eventDate.isBefore(today)) {
-      throw Exception('Past events cannot be cancelled');
-    }
-
-    // ================= UPDATE =================
-
     await ref.update({
       'status': 'cancelled',
-
       'cancelledAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // ================= COMPLETE EVENT =================
+  // ================= COMPLETE =================
 
   Future<void> completeEvent(String eventId) async {
     await _requireAdmin();
 
-    final uid = currentUserId!;
+    final uid = _requireUser();
 
     final ref = _firestore.collection('events').doc(eventId);
 
     final data = await _getEvent(eventId);
 
-    // ================= VALIDATION =================
+    if (EventTimeHelper.isEventClosed(data)) {
+      throw Exception('Past events cannot be completed');
+    }
 
     if (data['createdBy'] != uid) {
       throw Exception('Only creator can complete event');
@@ -261,16 +237,13 @@ class EventService {
       throw Exception('Event already completed');
     }
 
-    // ================= UPDATE =================
-
     await ref.update({
       'status': 'completed',
-
       'completedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  // ================= STREAM REGISTRATIONS =================
+  // ================= REGISTRATIONS =================
 
   Stream<List<Map<String, dynamic>>> streamRegistrationsForEvent(
     String eventId,
@@ -280,23 +253,11 @@ class EventService {
         .where('eventId', isEqualTo: eventId)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            final data = doc.data();
-
-            return {
-              'id': doc.id,
-              'userId': data['userId'],
-              'eventId': data['eventId'],
-              'registeredAt': (data['registeredAt'] as Timestamp).toDate(),
-              'attended': data['attended'] ?? false,
-              'markedBy': data['markedBy'],
-              'markedAt': (data['markedAt'] as Timestamp?)?.toDate(),
-            };
-          }).toList();
+          return snapshot.docs.map(EventMapper.fromRegistrationDoc).toList();
         });
   }
 
-  // ================= MARK ATTENDANCE =================
+  // ================= ATTENDANCE =================
 
   Future<void> markAttendance({
     required String registrationId,
@@ -304,41 +265,32 @@ class EventService {
   }) async {
     await _requireAdmin();
 
-    final uid = currentUserId!;
-
-    // ================= REGISTRATION =================
-
-    if (registrationId.isEmpty) {
-      throw Exception('Invalid request');
-    }
+    final uid = _requireUser();
 
     final regRef = _firestore.collection('registrations').doc(registrationId);
 
     final regSnap = await regRef.get();
 
-    if (!regSnap.exists) {
+    if (!regSnap.exists || regSnap.data() == null) {
       throw Exception('Registration not found');
     }
 
     final regData = regSnap.data()!;
-    final eventId = regData['eventId'];
 
-    // ================= EVENT =================
-
-    final eventData = await _getEvent(eventId);
-
-    // ================= VALIDATION =================
+    final eventData = await _getEvent(regData['eventId']);
 
     if (eventData['createdBy'] != uid) {
       throw Exception('Unauthorized');
+    }
+
+    if (EventTimeHelper.isEventClosed(eventData)) {
+      throw Exception('Attendance closed');
     }
 
     if (eventData['status'] == 'cancelled' ||
         eventData['status'] == 'completed') {
       throw Exception('Event closed');
     }
-
-    // ================= UPDATE =================
 
     await regRef.update({
       'attended': attended,
@@ -347,12 +299,12 @@ class EventService {
     });
   }
 
-  // ================= ATTENDANCE STATS =================
+  // ================= STATS =================
 
   Future<Map<String, int>> getAttendanceStats(String eventId) async {
     await _requireAdmin();
 
-    final uid = currentUserId!;
+    final uid = _requireUser();
 
     final event = await _getEvent(eventId);
 
@@ -369,9 +321,7 @@ class EventService {
     int attended = 0;
 
     for (final doc in snapshot.docs) {
-      final bool isAttended = doc.data()['attended'] ?? false;
-
-      if (isAttended) {
+      if (doc.data()['attended'] == true) {
         attended++;
       }
     }
@@ -380,9 +330,10 @@ class EventService {
   }
 }
 
-// ================= VALIDATE TIME RANGE =================
+// ================= TIME VALIDATION =================
+
 void _validateTimeRange(String start, String end) {
-  final regex = RegExp(r'^\d{2}:\d{2}$'); // HH:mm format
+  final regex = RegExp(r'^\d{2}:\d{2}$');
 
   if (!regex.hasMatch(start) || !regex.hasMatch(end)) {
     throw Exception('Invalid time format');

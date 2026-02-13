@@ -1,11 +1,9 @@
-import 'package:camp_connect/widgets/complete_event_dialog.dart';
+import 'package:camp_connect/widgets/admin/event/actions/admin_event_dialog_complete.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../services/event_service.dart';
-import 'event_action_button.dart';
-
-// ================= ATTENDANCE SHEET =================
+import '../../../../services/event_service.dart';
+import 'admin_event_action_button.dart';
 
 class AttendanceSheet extends StatelessWidget {
   const AttendanceSheet({
@@ -15,13 +13,14 @@ class AttendanceSheet extends StatelessWidget {
     required this.isEnded,
   });
 
-  // ================= CONFIG =================
-
   final String eventId;
   final bool isCompleted;
   final bool isEnded;
 
-  // ================= HELPERS =================
+  // Lock when completed OR ended
+  bool get isLocked => isCompleted || isEnded;
+
+  // ================= ATTACH EMAILS =================
 
   Future<List<Map<String, dynamic>>> _attachEmails(
     List<Map<String, dynamic>> regs,
@@ -45,28 +44,21 @@ class AttendanceSheet extends StatelessWidget {
     }).toList();
   }
 
-  // ================= BUILD =================
-
   @override
   Widget build(BuildContext context) {
-    final bool isLocked = isCompleted || isEnded;
-
     return Container(
       width: double.infinity,
-
-      // ================= CONTAINER UI =================
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         border: Border(top: BorderSide(color: Colors.grey.shade300)),
       ),
-
       child: Column(
         children: [
           // ================= HEADER =================
-          Padding(
-            padding: const EdgeInsets.all(16),
+          const Padding(
+            padding: EdgeInsets.all(16),
             child: Row(
-              children: const [
+              children: [
                 Icon(Icons.assignment_turned_in, color: Colors.deepPurple),
                 SizedBox(width: 8),
                 Text(
@@ -86,7 +78,7 @@ class AttendanceSheet extends StatelessWidget {
               stream: EventService().streamRegistrationsForEvent(eventId),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return const Text('Failed to load stats');
+                  return const Center(child: Text('Failed to load attendance'));
                 }
 
                 if (!snapshot.hasData) {
@@ -102,24 +94,20 @@ class AttendanceSheet extends StatelessWidget {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    final list = emailSnap.data!;
-
-                    // ================= SORT =================
-                    list.sort((a, b) => a['email'].compareTo(b['email']));
+                    final list = emailSnap.data!
+                      ..sort(
+                        (a, b) => (a['email'] as String).compareTo(b['email']),
+                      );
 
                     return ListView.builder(
                       itemCount: list.length,
                       itemBuilder: (context, i) {
                         final reg = list[i];
-
                         final bool attended = reg['attended'] == true;
 
                         return ListTile(
                           dense: true,
-
                           title: Text(reg['email']),
-
-                          // ================= ACTION =================
                           trailing: isLocked
                               ? Icon(
                                   attended ? Icons.check_circle : Icons.cancel,
@@ -127,9 +115,7 @@ class AttendanceSheet extends StatelessWidget {
                                 )
                               : Switch(
                                   value: attended,
-
-                                  activeColor: Colors.deepPurple,
-
+                                  activeThumbColor: Colors.deepPurple,
                                   onChanged: (val) async {
                                     await EventService().markAttendance(
                                       registrationId: reg['id'],
@@ -159,7 +145,6 @@ class AttendanceSheet extends StatelessWidget {
                 }
 
                 final stats = snapshot.data!;
-
                 final registered = stats['registered'] ?? 0;
                 final attended = stats['attended'] ?? 0;
 
@@ -187,15 +172,12 @@ class AttendanceSheet extends StatelessWidget {
             child: SizedBox(
               width: double.infinity,
               height: 48,
-
               child: isLocked
-                  // ================= CLOSED =================
                   ? Container(
                       decoration: BoxDecoration(
                         color: Colors.deepPurple.shade100,
                         borderRadius: BorderRadius.circular(24),
                       ),
-
                       child: const Center(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -213,26 +195,32 @@ class AttendanceSheet extends StatelessWidget {
                         ),
                       ),
                     )
-                  // ================= ACTIVE =================
                   : EventActionButton(
                       text: 'Complete Event',
-
                       bgColor: Colors.deepPurple.shade100,
-
                       textColor: Colors.deepPurple.shade800,
-
                       onPressed: () async {
-                        final confirm = await CompleteEventDialog.show(context);
+                        try {
+                          final confirm = await CompleteEventDialog.show(
+                            context,
+                          );
 
-                        if (confirm != true) return;
+                          if (confirm != true) return;
 
-                        await EventService().completeEvent(eventId);
+                          await EventService().completeEvent(eventId);
 
-                        if (!context.mounted) return;
+                          if (!context.mounted) return;
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Event Completed')),
-                        );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Event Completed')),
+                          );
+                        } catch (e) {
+                          if (!context.mounted) return;
+
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text(e.toString())));
+                        }
                       },
                     ),
             ),
