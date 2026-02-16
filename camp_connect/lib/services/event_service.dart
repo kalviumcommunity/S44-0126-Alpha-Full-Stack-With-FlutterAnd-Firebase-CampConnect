@@ -114,6 +114,8 @@ class EventService {
 
     final uid = _requireUser();
 
+    EventTimeHelper.validateFutureEvent(date: date, startTime: startTime);
+
     final data = _prepareEventData(
       title: title,
       description: description,
@@ -171,6 +173,8 @@ class EventService {
     if (data['status'] == 'cancelled' || data['status'] == 'completed') {
       throw Exception('Closed events cannot be edited');
     }
+
+    EventTimeHelper.validateFutureEvent(date: date, startTime: startTime);
 
     final newData = _prepareEventData(
       title: title,

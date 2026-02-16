@@ -112,15 +112,17 @@ class _AdminEventScreenState extends State<AdminEventScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isEdit
-                ? 'Failed to update event. Please try again.'
-                : 'Failed to create event. Please try again.',
-          ),
-        ),
-      );
+      String message;
+
+      if (e is Exception) {
+        message = e.toString().replaceFirst('Exception: ', '');
+      } else {
+        message = 'Something went wrong. Please try again.';
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
