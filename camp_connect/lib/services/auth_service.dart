@@ -1,3 +1,4 @@
+import 'package:camp_connect/services/audit_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -38,12 +39,16 @@ class AuthService {
       if (user != null) {
         await _firestore.collection('users').doc(user.uid).set({
           'email': email,
-
-          // 🔒 Enforced default role
           'role': 'student',
-
           'createdAt': FieldValue.serverTimestamp(),
         });
+
+        await AuditService.log(
+          action: 'signup',
+          resourceType: 'user',
+          resourceId: user.uid,
+          targetUserId: user.uid,
+        );
       }
 
       return user;
@@ -61,7 +66,18 @@ class AuthService {
         password: password,
       );
 
-      return cred.user;
+      final user = cred.user;
+
+      if (user != null) {
+        await AuditService.log(
+          action: 'login',
+          resourceType: 'user',
+          resourceId: user.uid,
+          targetUserId: user.uid,
+        );
+      }
+
+      return user;
     } on FirebaseAuthException {
       return null;
     }
@@ -70,7 +86,18 @@ class AuthService {
   // ================= LOGOUT =================
 
   Future<void> logout() async {
+    final uid = currentUserId;
+
     await _auth.signOut();
+
+    if (uid != null) {
+      await AuditService.log(
+        action: 'logout',
+        resourceType: 'user',
+        resourceId: uid,
+        targetUserId: uid,
+      );
+    }
   }
 
   // ================= USER PROFILE =================

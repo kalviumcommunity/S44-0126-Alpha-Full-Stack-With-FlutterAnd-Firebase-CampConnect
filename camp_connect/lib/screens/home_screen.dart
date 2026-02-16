@@ -1,17 +1,15 @@
+import 'package:camp_connect/screens/event_detail_screen.dart';
+import 'package:camp_connect/screens/event_list_screen.dart';
+import 'package:camp_connect/screens/profile_screen.dart';
+import 'package:camp_connect/services/event_service.dart';
+import 'package:camp_connect/services/registration_service.dart';
+import 'package:camp_connect/utils/date_time_utils.dart';
+import 'package:camp_connect/widgets/admin/common/admin_badge.dart';
+import 'package:camp_connect/widgets/common/app_bottom_nav.dart';
+import 'package:camp_connect/widgets/events/event_card_item.dart';
+import 'package:camp_connect/widgets/events/event_empty_state.dart';
+import 'package:camp_connect/widgets/events/event_responsive_list.dart';
 import 'package:flutter/material.dart';
-
-import '../services/event_service.dart';
-import '../services/registration_service.dart';
-
-import '../utils/date_time_utils.dart';
-
-import '../widgets/event_card.dart';
-import '../widgets/app_bottom_nav.dart';
-import '../widgets/admin_badge.dart';
-
-import 'event_detail_screen.dart';
-import 'event_list_screen.dart';
-import 'profile_screen.dart';
 
 // ================= HOME SCREEN =================
 
@@ -23,8 +21,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // ================= NAVIGATION =================
-
   int currentIndex = 0;
 
   final List<Widget> screens = const [
@@ -33,18 +29,13 @@ class _HomeScreenState extends State<HomeScreen> {
     ProfileScreen(),
   ];
 
-  // ================= BUILD =================
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ================= BODY =================
       body: screens[currentIndex],
 
-      // ================= BOTTOM NAV =================
       bottomNavigationBar: AppBottomNav(
         currentIndex: currentIndex,
-
         onTap: (index) {
           setState(() => currentIndex = index);
         },
@@ -58,19 +49,10 @@ class _HomeScreenState extends State<HomeScreen> {
 class HomeTab extends StatelessWidget {
   const HomeTab({super.key});
 
-  // ================= BUILD =================
-
   @override
   Widget build(BuildContext context) {
-    // ================= DATE =================
-
-    final DateTime today = todayDate();
-
-    // ================= LAYOUT =================
-
-    final size = MediaQuery.of(context).size;
-
-    final bool isWide = size.width >= 930;
+    final now = DateTime.now();
+    final today = todayDate();
 
     return StreamBuilder<List<String>>(
       stream: RegistrationService().streamUserRegistrations(),
@@ -82,43 +64,41 @@ class HomeTab extends StatelessWidget {
           stream: EventService().streamEvents(),
 
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+            if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text('No upcoming events'));
-            }
-
-            // ================= DATA =================
-
             final events = snapshot.data!;
 
-            final todayEvents = events.where((e) {
-              final eventDate = normalizeDate(e['date']);
-              return eventDate.isAtSameMomentAs(today);
+            // ================= FILTER TODAY =================
+
+            final todayEvents = events.where((event) {
+              final start = getEventStartDateTime(event);
+              final end = getEventEndDateTime(event);
+
+              final isToday = normalizeDate(start) == today;
+
+              final notEnded = now.isBefore(end);
+
+              return isToday && notEnded;
             }).toList();
 
             // ================= SORT =================
 
-            todayEvents.sort((a, b) => a['date'].compareTo(b['date']));
-
-            // ================= UI =================
+            todayEvents.sort(
+              (a, b) =>
+                  getEventEndDateTime(a).compareTo(getEventEndDateTime(b)),
+            );
 
             return CustomScrollView(
               slivers: [
-                // ================= APP BAR =================
                 const SliverAppBar(
                   pinned: true,
-
                   centerTitle: true,
-
-                  title: Text('Upcoming Events'),
-
+                  title: Text('Today’s Events'),
                   actions: [AdminBadge()],
                 ),
 
-                // ================= CONTENT =================
                 SliverPadding(
                   padding: const EdgeInsets.all(16),
 
@@ -127,9 +107,33 @@ class HomeTab extends StatelessWidget {
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 1000),
 
-                        child: isWide
-                            ? _buildGrid(context, todayEvents, registeredIds)
-                            : _buildList(context, todayEvents, registeredIds),
+                        child: todayEvents.isEmpty
+                            ? const EmptyEventState(
+                                text: 'No more events today',
+                              )
+                            : EventResponsiveList(
+                                events: todayEvents,
+
+                                itemBuilder: (context, event) {
+                                  return EventCardItem(
+                                    event: event,
+
+                                    isRegistered: registeredIds.contains(
+                                      event['id'],
+                                    ),
+
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              EventDetailScreen(event: event),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
                       ),
                     ),
                   ),
@@ -137,85 +141,6 @@ class HomeTab extends StatelessWidget {
               ],
             );
           },
-        );
-      },
-    );
-  }
-
-  // ================= GRID VIEW =================
-
-  Widget _buildGrid(
-    BuildContext context,
-    List<Map<String, dynamic>> events,
-    List<String> registeredIds,
-  ) {
-    return GridView.builder(
-      shrinkWrap: true,
-
-      physics: const NeverScrollableScrollPhysics(),
-
-      itemCount: events.length,
-
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-
-        childAspectRatio: 2.8,
-      ),
-
-      itemBuilder: (context, index) {
-        final event = events[index];
-
-        return _buildEventCard(context, event, registeredIds);
-      },
-    );
-  }
-
-  // ================= LIST VIEW =================
-
-  Widget _buildList(
-    BuildContext context,
-    List<Map<String, dynamic>> events,
-    List<String> registeredIds,
-  ) {
-    return ListView.builder(
-      shrinkWrap: true,
-
-      physics: const NeverScrollableScrollPhysics(),
-
-      itemCount: events.length,
-
-      itemBuilder: (context, index) {
-        final event = events[index];
-
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-
-          child: _buildEventCard(context, event, registeredIds),
-        );
-      },
-    );
-  }
-
-  // ================= EVENT CARD =================
-
-  Widget _buildEventCard(
-    BuildContext context,
-    Map<String, dynamic> event,
-    List<String> registeredIds,
-  ) {
-    return EventCard(
-      event: event,
-
-      isRegistered: registeredIds.contains(event['id']),
-
-      onTap: () {
-        Navigator.push(
-          context,
-
-          MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
         );
       },
     );

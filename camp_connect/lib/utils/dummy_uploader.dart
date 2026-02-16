@@ -1,5 +1,5 @@
-import '../data/dummy_events.dart';
-import '../services/event_service.dart';
+import 'package:camp_connect/services/event_service.dart';
+import 'package:camp_connect/utils/dummy_events.dart';
 
 class DummyUploader {
   static Future<void> uploadAll() async {

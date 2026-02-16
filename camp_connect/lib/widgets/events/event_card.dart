@@ -1,14 +1,18 @@
+import 'package:camp_connect/utils/date_time_utils.dart';
+import 'package:camp_connect/utils/events/event_status_helper.dart';
+import 'package:camp_connect/widgets/admin/event/actions/admin_event_card_action_buttons.dart';
 import 'package:flutter/material.dart';
 
-import '../utils/date_time_utils.dart';
+// ================= EVENT CARD =================
 
 class EventCard extends StatelessWidget {
   final Map<String, dynamic> event;
-  final VoidCallback? onTap;
-  final bool isRegistered;
 
-  // ================= ADMIN =================
+  final VoidCallback? onTap;
+
+  final bool isRegistered;
   final bool isAdmin;
+
   final VoidCallback? onEdit;
   final VoidCallback? onCancel;
 
@@ -24,57 +28,12 @@ class EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ================= DATES =================
+    final status = EventStatusHelper.resolve(event);
 
-    final DateTime eventDate = normalizeDate(event['date']);
-    final DateTime today = todayDate();
+    final bool canModify =
+        isAdmin && !status.isCancelled && !status.isPast && !status.isCompleted;
 
-    final bool isPast = eventDate.isBefore(today);
-    final bool isToday = eventDate.isAtSameMomentAs(today);
-
-    // ================= STATUS =================
-
-    final String status = event['status'] ?? 'active';
-
-    final bool isCancelled = status == 'cancelled';
-    final bool isCompleted = status == 'completed';
-
-    // ================= PERMISSIONS =================
-
-    // Only allow edit/cancel if active
-    final bool canModify = isAdmin && !isCancelled && !isPast && !isCompleted;
-
-    final bool shouldDim = isCancelled || isPast;
-
-    // ================= STATUS UI =================
-
-    late String statusText;
-    late Color badgeColor;
-    late Color textColor;
-
-    // Priority: Cancelled → Past → Completed → Today → Upcoming
-
-    if (isCancelled) {
-      statusText = 'Cancelled';
-      badgeColor = Colors.red.shade100;
-      textColor = Colors.red.shade800;
-    } else if (isPast) {
-      statusText = 'Event Ended';
-      badgeColor = Colors.grey.shade300;
-      textColor = Colors.grey.shade700;
-    } else if (isCompleted) {
-      statusText = 'Completed';
-      badgeColor = Colors.deepPurple.shade100;
-      textColor = Colors.deepPurple.shade800;
-    } else if (isToday) {
-      statusText = 'Event Today';
-      badgeColor = Colors.orange.shade100;
-      textColor = Colors.orange.shade800;
-    } else {
-      statusText = 'Upcoming Event';
-      badgeColor = Colors.green.shade100;
-      textColor = Colors.green.shade800;
-    }
+    final bool shouldDim = status.isCancelled || status.isPast;
 
     return Stack(
       children: [
@@ -91,7 +50,6 @@ class EventCard extends StatelessWidget {
 
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
-
               onTap: onTap,
 
               child: Padding(
@@ -140,7 +98,6 @@ class EventCard extends StatelessWidget {
                     Row(
                       children: [
                         const Icon(Icons.calendar_today, size: 16),
-
                         const SizedBox(width: 8),
 
                         Text(
@@ -151,7 +108,6 @@ class EventCard extends StatelessWidget {
                         const SizedBox(width: 32),
 
                         const Icon(Icons.access_time, size: 16),
-
                         const SizedBox(width: 8),
 
                         Text(
@@ -167,7 +123,6 @@ class EventCard extends StatelessWidget {
                     Row(
                       children: [
                         const Icon(Icons.location_on, size: 16),
-
                         const SizedBox(width: 8),
 
                         Expanded(child: Text(event['location'])),
@@ -176,7 +131,7 @@ class EventCard extends StatelessWidget {
 
                     const SizedBox(height: 12),
 
-                    // ================= STATUS BADGE =================
+                    // ================= STATUS =================
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
@@ -184,17 +139,17 @@ class EventCard extends StatelessWidget {
                       ),
 
                       decoration: BoxDecoration(
-                        color: badgeColor,
+                        color: status.badgeColor,
                         borderRadius: BorderRadius.circular(20),
                       ),
 
                       child: Text(
-                        statusText,
+                        status.text,
 
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: textColor,
+                          color: status.textColor,
                         ),
                       ),
                     ),
@@ -213,24 +168,26 @@ class EventCard extends StatelessWidget {
 
             child: Row(
               children: [
-                _AdminCircleButton(
+                AdminCircleButton(
                   icon: Icons.edit,
 
                   bgColor: Colors.blue.shade100,
                   borderColor: Colors.blue.shade700,
                   iconColor: Colors.blue.shade700,
+                  tooltip: 'Edit Event',
 
                   onTap: onEdit,
                 ),
 
                 const SizedBox(width: 8),
 
-                _AdminCircleButton(
+                AdminCircleButton(
                   icon: Icons.close,
 
                   bgColor: Colors.red.shade100,
                   borderColor: Colors.red.shade700,
                   iconColor: Colors.red.shade700,
+                  tooltip: 'Cancel Event',
 
                   onTap: onCancel,
                 ),
@@ -238,53 +195,6 @@ class EventCard extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-// ================= ADMIN BUTTON =================
-
-class _AdminCircleButton extends StatelessWidget {
-  final IconData icon;
-  final Color bgColor;
-  final Color borderColor;
-  final Color iconColor;
-  final VoidCallback? onTap;
-
-  const _AdminCircleButton({
-    required this.icon,
-    required this.bgColor,
-    required this.borderColor,
-    required this.iconColor,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      customBorder: const CircleBorder(),
-      onTap: onTap,
-
-      child: Container(
-        padding: const EdgeInsets.all(10),
-
-        decoration: BoxDecoration(
-          color: bgColor,
-          shape: BoxShape.circle,
-
-          border: Border.all(color: borderColor, width: 1.2),
-
-          boxShadow: [
-            BoxShadow(
-              color: borderColor.withValues(alpha: 0.15),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-
-        child: Icon(icon, size: 18, color: iconColor),
-      ),
     );
   }
 }
