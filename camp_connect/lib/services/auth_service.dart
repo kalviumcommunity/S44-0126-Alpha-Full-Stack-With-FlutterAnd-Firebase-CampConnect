@@ -43,7 +43,12 @@ class AuthService {
           'createdAt': FieldValue.serverTimestamp(),
         });
 
-        await AuditService.log(action: 'signup', resourceId: user.uid);
+        await AuditService.log(
+          action: 'signup',
+          resourceType: 'user',
+          resourceId: user.uid,
+          targetUserId: user.uid,
+        );
       }
 
       return user;
@@ -64,7 +69,12 @@ class AuthService {
       final user = cred.user;
 
       if (user != null) {
-        await AuditService.log(action: 'login', resourceId: user.uid);
+        await AuditService.log(
+          action: 'login',
+          resourceType: 'user',
+          resourceId: user.uid,
+          targetUserId: user.uid,
+        );
       }
 
       return user;
@@ -81,7 +91,12 @@ class AuthService {
     await _auth.signOut();
 
     if (uid != null) {
-      await AuditService.log(action: 'logout', resourceId: uid);
+      await AuditService.log(
+        action: 'logout',
+        resourceType: 'user',
+        resourceId: uid,
+        targetUserId: uid,
+      );
     }
   }
 

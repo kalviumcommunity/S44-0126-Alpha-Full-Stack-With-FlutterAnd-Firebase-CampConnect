@@ -85,10 +85,12 @@ class RegistrationService {
         'attended': false,
         'registeredAt': FieldValue.serverTimestamp(),
       });
+
       await AuditService.log(
         action: 'register_event',
-        resourceId: eventId,
-        message: 'User registered for event',
+        resourceType: 'registration',
+        resourceId: newDoc.id,
+        targetUserId: uid,
       );
     });
   }

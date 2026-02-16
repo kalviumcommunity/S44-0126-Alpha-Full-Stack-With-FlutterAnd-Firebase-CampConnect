@@ -132,8 +132,9 @@ class EventService {
 
     await AuditService.log(
       action: 'create_event',
+      resourceType: 'event',
       resourceId: ref.id,
-      message: 'Event created',
+      targetUserId: uid,
     );
   }
 
@@ -184,8 +185,9 @@ class EventService {
 
     await AuditService.log(
       action: 'update_event',
+      resourceType: 'event',
       resourceId: eventId,
-      message: 'Event updated',
+      targetUserId: uid,
     );
   }
 
@@ -223,8 +225,9 @@ class EventService {
 
     await AuditService.log(
       action: 'cancel_event',
+      resourceType: 'event',
       resourceId: eventId,
-      message: 'Event cancelled',
+      targetUserId: uid,
     );
   }
 
@@ -262,8 +265,9 @@ class EventService {
 
     await AuditService.log(
       action: 'complete_event',
+      resourceType: 'event',
       resourceId: eventId,
-      message: 'Event completed',
+      targetUserId: uid,
     );
   }
 
@@ -322,9 +326,10 @@ class EventService {
       'markedAt': FieldValue.serverTimestamp(),
     });
     await AuditService.log(
-      action: 'mark_attendance',
+      action: attended ? 'marked_present' : 'marked_absent',
+      resourceType: 'registration',
       resourceId: registrationId,
-      message: attended ? 'Marked as attended' : 'Marked as not attended',
+      targetUserId: regData['userId'],
     );
   }
 
