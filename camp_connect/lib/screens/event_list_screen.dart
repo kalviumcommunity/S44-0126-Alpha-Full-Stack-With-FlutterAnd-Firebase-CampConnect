@@ -1,21 +1,17 @@
-import 'package:camp_connect/widgets/admin/admin_dummy_upload_button.dart';
+import 'package:camp_connect/screens/admin/event_create_edit_screen.dart';
+import 'package:camp_connect/screens/event_detail_screen.dart';
+import 'package:camp_connect/services/auth_service.dart';
+import 'package:camp_connect/services/event_service.dart';
+import 'package:camp_connect/services/registration_service.dart';
+import 'package:camp_connect/utils/date_time_utils.dart';
+import 'package:camp_connect/widgets/admin/common/admin_badge.dart';
+import 'package:camp_connect/widgets/admin/common/admin_dummy_upload_button.dart';
+import 'package:camp_connect/widgets/admin/event/actions/admin_event_dialog_cancel.dart';
 import 'package:camp_connect/widgets/events/event_card_item.dart';
 import 'package:camp_connect/widgets/events/event_empty_state.dart';
 import 'package:camp_connect/widgets/events/event_responsive_list.dart';
-import 'package:camp_connect/widgets/admin/admin_add_event_button.dart';
+import 'package:camp_connect/widgets/admin/common/admin_add_event_button.dart';
 import 'package:flutter/material.dart';
-
-import '../services/registration_service.dart';
-import '../services/event_service.dart';
-import '../services/auth_service.dart';
-
-import '../widgets/admin/admin_badge.dart';
-import '../widgets/admin/admin_event_cancel_dialog.dart';
-
-import '../utils/date_time_utils.dart';
-
-import 'admin/event_create_edit_screen.dart';
-import 'event_detail_screen.dart';
 
 // ================= EVENT LIST =================
 
@@ -49,9 +45,11 @@ class EventListScreen extends StatelessWidget {
     } catch (e) {
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Something went wrong. Please try again.'),
+        ),
+      );
     }
   }
 

@@ -1,6 +1,5 @@
+import 'package:camp_connect/widgets/auth/auth_input_field.dart';
 import 'package:flutter/material.dart';
-
-import 'auth_input_field.dart';
 
 // ================= AUTH FORM LAYOUT =================
 

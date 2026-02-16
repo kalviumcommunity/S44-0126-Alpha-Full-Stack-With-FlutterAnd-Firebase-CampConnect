@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
-
 import 'package:camp_connect/services/auth_service.dart';
 import 'package:camp_connect/utils/dummy_uploader.dart';
+import 'package:flutter/material.dart';
 
 class AdminDummyUploadButton extends StatelessWidget {
   const AdminDummyUploadButton({super.key});
@@ -51,9 +50,11 @@ class AdminDummyUploadButton extends StatelessWidget {
             } catch (e) {
               if (!context.mounted) return;
 
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(e.toString())));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Something went wrong. Please try again.'),
+                ),
+              );
             }
           },
         );

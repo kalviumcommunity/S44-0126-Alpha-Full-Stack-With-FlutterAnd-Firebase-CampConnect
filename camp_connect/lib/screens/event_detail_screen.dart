@@ -1,12 +1,9 @@
+import 'package:camp_connect/services/auth_service.dart';
+import 'package:camp_connect/services/event_service.dart';
+import 'package:camp_connect/utils/date_time_utils.dart';
+import 'package:camp_connect/widgets/events/event_detail_body.dart';
+import 'package:camp_connect/widgets/events/event_detail_bottom.dart';
 import 'package:flutter/material.dart';
-
-import '../services/event_service.dart';
-import '../services/auth_service.dart';
-
-import '../widgets/events/event_detail_body.dart';
-import '../widgets/events/event_detail_bottom.dart';
-
-import '../utils/date_time_utils.dart';
 
 // ================= EVENT DETAIL =================
 

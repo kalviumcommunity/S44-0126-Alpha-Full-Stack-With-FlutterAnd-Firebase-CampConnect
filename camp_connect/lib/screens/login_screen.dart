@@ -1,10 +1,8 @@
+import 'package:camp_connect/screens/home_screen.dart';
+import 'package:camp_connect/screens/signup_screen.dart';
+import 'package:camp_connect/services/auth_service.dart';
+import 'package:camp_connect/widgets/auth/auth_form_layout.dart';
 import 'package:flutter/material.dart';
-
-import '../services/auth_service.dart';
-import '../widgets/auth/auth_form_layout.dart';
-
-import 'home_screen.dart';
-import 'signup_screen.dart';
 
 // ================= LOGIN =================
 

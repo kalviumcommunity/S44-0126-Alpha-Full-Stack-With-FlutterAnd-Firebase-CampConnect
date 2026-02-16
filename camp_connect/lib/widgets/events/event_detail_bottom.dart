@@ -1,9 +1,8 @@
 import 'package:camp_connect/services/registration_service.dart';
-import 'package:camp_connect/utils/event_status_helper.dart';
+import 'package:camp_connect/utils/events/event_status_helper.dart';
+import 'package:camp_connect/widgets/admin/event/actions/admin_event_attendance_sheet.dart';
+import 'package:camp_connect/widgets/events/event_register_button.dart';
 import 'package:flutter/material.dart';
-
-import '../admin/admin_attendance_sheet.dart';
-import 'event_register_button.dart';
 
 // ================= EVENT DETAIL BOTTOM =================
 
@@ -59,9 +58,11 @@ class EventDetailBottom extends StatelessWidget {
               } catch (e) {
                 if (!context.mounted) return;
 
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(e.toString())));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Something went wrong. Please try again.'),
+                  ),
+                );
               }
             },
 

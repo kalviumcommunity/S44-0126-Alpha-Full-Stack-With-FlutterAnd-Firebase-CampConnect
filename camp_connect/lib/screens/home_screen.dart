@@ -1,19 +1,15 @@
+import 'package:camp_connect/screens/event_detail_screen.dart';
+import 'package:camp_connect/screens/event_list_screen.dart';
+import 'package:camp_connect/screens/profile_screen.dart';
+import 'package:camp_connect/services/event_service.dart';
+import 'package:camp_connect/services/registration_service.dart';
+import 'package:camp_connect/utils/date_time_utils.dart';
+import 'package:camp_connect/widgets/admin/common/admin_badge.dart';
+import 'package:camp_connect/widgets/common/app_bottom_nav.dart';
 import 'package:camp_connect/widgets/events/event_card_item.dart';
 import 'package:camp_connect/widgets/events/event_empty_state.dart';
 import 'package:camp_connect/widgets/events/event_responsive_list.dart';
 import 'package:flutter/material.dart';
-
-import '../services/event_service.dart';
-import '../services/registration_service.dart';
-
-import '../utils/date_time_utils.dart';
-
-import '../widgets/common/app_bottom_nav.dart';
-import '../widgets/admin/admin_badge.dart';
-
-import 'event_detail_screen.dart';
-import 'event_list_screen.dart';
-import 'profile_screen.dart';
 
 // ================= HOME SCREEN =================
 

@@ -1,7 +1,6 @@
+import 'package:camp_connect/services/event_service.dart';
+import 'package:camp_connect/widgets/admin/event/actions/admin_event_dialog_cancel.dart';
 import 'package:flutter/material.dart';
-
-import '../../services/event_service.dart';
-import 'admin_event_cancel_dialog.dart';
 
 class CancelEventHandler {
   static Future<void> confirmAndCancel(
@@ -29,9 +28,11 @@ class CancelEventHandler {
     } catch (e) {
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Something went wrong. Please try again.'),
+        ),
+      );
     }
   }
 }

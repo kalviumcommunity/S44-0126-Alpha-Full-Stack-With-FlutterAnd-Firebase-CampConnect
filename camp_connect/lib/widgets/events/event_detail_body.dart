@@ -1,10 +1,9 @@
-import 'package:camp_connect/utils/event_meta_helper.dart';
-import 'package:camp_connect/utils/event_status_helper.dart';
+import 'package:camp_connect/utils/events/event_meta_helper.dart';
+import 'package:camp_connect/utils/events/event_status_helper.dart';
 import 'package:camp_connect/utils/date_time_utils.dart';
+import 'package:camp_connect/widgets/events/event_header.dart';
+import 'package:camp_connect/widgets/events/event_status_badge.dart';
 import 'package:flutter/material.dart';
-
-import 'event_header.dart';
-import 'event_status_badge.dart';
 
 // ================= EVENT DETAIL BODY =================
 

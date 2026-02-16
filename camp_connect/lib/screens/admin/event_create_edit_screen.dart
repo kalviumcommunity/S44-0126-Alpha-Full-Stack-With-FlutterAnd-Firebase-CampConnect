@@ -1,10 +1,9 @@
+import 'package:camp_connect/services/event_service.dart';
 import 'package:camp_connect/utils/picker_utils.dart';
-import 'package:camp_connect/widgets/admin/admin_event_create_edit_layout.dart';
-import 'package:camp_connect/widgets/admin/admin_guard.dart';
+import 'package:camp_connect/widgets/admin/event/form/admin_event_create_edit_layout.dart';
+import 'package:camp_connect/widgets/admin/common/admin_guard.dart';
+import 'package:camp_connect/widgets/admin/event/form/admin_event_form.dart';
 import 'package:flutter/material.dart';
-
-import '../../services/event_service.dart';
-import '../../widgets/admin/admin_event_form.dart';
 
 enum EventMode { create, edit }
 

@@ -1,3 +1,4 @@
+import 'package:camp_connect/services/audit_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -84,6 +85,11 @@ class RegistrationService {
         'attended': false,
         'registeredAt': FieldValue.serverTimestamp(),
       });
+      await AuditService.log(
+        action: 'register_event',
+        resourceId: eventId,
+        message: 'User registered for event',
+      );
     });
   }
 

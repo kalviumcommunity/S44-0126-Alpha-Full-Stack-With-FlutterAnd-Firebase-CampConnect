@@ -1,6 +1,5 @@
+import 'package:camp_connect/utils/date_time_utils.dart';
 import 'package:flutter/material.dart';
-
-import 'date_time_utils.dart';
 
 // ================= STATUS INFO =================
 

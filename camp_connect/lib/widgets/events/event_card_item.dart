@@ -1,6 +1,5 @@
+import 'package:camp_connect/widgets/events/event_card.dart';
 import 'package:flutter/material.dart';
-
-import 'event_card.dart';
 
 // ================= EVENT CARD ITEM =================
 

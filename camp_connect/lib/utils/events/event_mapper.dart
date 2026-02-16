@@ -47,7 +47,9 @@ class EventMapper {
       'userId': data['userId'],
       'eventId': data['eventId'],
 
-      'registeredAt': (data['registeredAt'] as Timestamp).toDate(),
+      'registeredAt': data['registeredAt'] is Timestamp
+          ? (data['registeredAt'] as Timestamp).toDate()
+          : null,
 
       'attended': data['attended'] ?? false,
 

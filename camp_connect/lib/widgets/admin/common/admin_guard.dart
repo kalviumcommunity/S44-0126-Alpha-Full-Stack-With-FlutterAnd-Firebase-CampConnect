@@ -1,5 +1,5 @@
+import 'package:camp_connect/services/auth_service.dart';
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
 
 class AdminGuard extends StatelessWidget {
   final Widget child;

@@ -1,9 +1,8 @@
+import 'package:camp_connect/services/event_service.dart';
+import 'package:camp_connect/widgets/admin/event/actions/admin_event_action_button.dart';
 import 'package:camp_connect/widgets/admin/event/actions/admin_event_dialog_complete.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-import '../../../../services/event_service.dart';
-import 'admin_event_action_button.dart';
 
 class AttendanceSheet extends StatelessWidget {
   const AttendanceSheet({
@@ -217,9 +216,13 @@ class AttendanceSheet extends StatelessWidget {
                         } catch (e) {
                           if (!context.mounted) return;
 
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text(e.toString())));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Something went wrong. Please try again.',
+                              ),
+                            ),
+                          );
                         }
                       },
                     ),

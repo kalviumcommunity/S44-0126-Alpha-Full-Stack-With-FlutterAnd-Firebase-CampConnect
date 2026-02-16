@@ -1,6 +1,5 @@
+import 'package:camp_connect/widgets/admin/event/form/admin_event_submit_button.dart';
 import 'package:flutter/material.dart';
-
-import 'admin_event_submit_button.dart';
 
 class AdminEventLayout extends StatelessWidget {
   final String title;

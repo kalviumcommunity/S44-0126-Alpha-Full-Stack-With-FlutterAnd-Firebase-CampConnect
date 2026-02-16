@@ -1,8 +1,8 @@
+import 'package:camp_connect/services/audit_service.dart';
+import 'package:camp_connect/utils/events/event_mapper.dart';
+import 'package:camp_connect/utils/events/event_time_helper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
-import '../utils/event_mapper.dart';
-import '../utils/event_time_helper.dart';
 
 // ================= EVENT SERVICE =================
 
@@ -123,12 +123,18 @@ class EventService {
       endTime: endTime,
     );
 
-    await _firestore.collection('events').add({
+    final ref = await _firestore.collection('events').add({
       ...data,
       'status': 'active',
       'createdBy': uid,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    await AuditService.log(
+      action: 'create_event',
+      resourceId: ref.id,
+      message: 'Event created',
+    );
   }
 
   // ================= UPDATE =================
@@ -175,6 +181,12 @@ class EventService {
     );
 
     await ref.update({...newData, 'updatedAt': FieldValue.serverTimestamp()});
+
+    await AuditService.log(
+      action: 'update_event',
+      resourceId: eventId,
+      message: 'Event updated',
+    );
   }
 
   // ================= CANCEL =================
@@ -208,6 +220,12 @@ class EventService {
       'status': 'cancelled',
       'cancelledAt': FieldValue.serverTimestamp(),
     });
+
+    await AuditService.log(
+      action: 'cancel_event',
+      resourceId: eventId,
+      message: 'Event cancelled',
+    );
   }
 
   // ================= COMPLETE =================
@@ -241,6 +259,12 @@ class EventService {
       'status': 'completed',
       'completedAt': FieldValue.serverTimestamp(),
     });
+
+    await AuditService.log(
+      action: 'complete_event',
+      resourceId: eventId,
+      message: 'Event completed',
+    );
   }
 
   // ================= REGISTRATIONS =================
@@ -297,6 +321,11 @@ class EventService {
       'markedBy': uid,
       'markedAt': FieldValue.serverTimestamp(),
     });
+    await AuditService.log(
+      action: 'mark_attendance',
+      resourceId: registrationId,
+      message: attended ? 'Marked as attended' : 'Marked as not attended',
+    );
   }
 
   // ================= STATS =================

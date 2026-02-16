@@ -1,8 +1,7 @@
 import 'package:camp_connect/utils/date_time_utils.dart';
+import 'package:camp_connect/utils/events/event_status_helper.dart';
+import 'package:camp_connect/widgets/admin/event/actions/admin_event_card_action_buttons.dart';
 import 'package:flutter/material.dart';
-
-import '../../utils/event_status_helper.dart';
-import '../admin/admin_event_card_action_buttons.dart';
 
 // ================= EVENT CARD =================
 
